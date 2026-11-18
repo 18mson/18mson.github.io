@@ -7,13 +7,13 @@ import "./globals.css";
 import { profile } from "@/content/profile";
 
 export const metadata: Metadata = {
-  title: `${profile.name} — ${profile.role}`,
+  title: `${profile.name} · ${profile.role}`,
   description: profile.description,
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="id">
+    <html lang="en">
       <body>{children}</body>
     </html>
   );

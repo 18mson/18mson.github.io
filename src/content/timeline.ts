@@ -5,79 +5,79 @@ export interface TimelineItem {
   org: string;
   summary: string;
   tags: string[];
-  /** Warna background section saat item ini berada di tengah layar. */
+  /** Section background tone when this card is centered in viewport. */
   tone: string;
 }
 
 export const timeline: TimelineItem[] = [
   {
     id: "indocyber-bri",
-    period: "Februari 2026 – Sekarang",
-    title: "Frontend Developer (BRI)",
-    org: "PT Indocyber Global Teknologi • BRI",
+    period: "Feb 2026 - Present",
+    title: "Frontend Developer",
+    org: "PT Indocyber Global Teknologi (Client: Bank Rakyat Indonesia)",
     summary:
-      "Mengembangkan dan merawat aplikasi web perbankan untuk BRI, termasuk proyek BRI Universal Biller. Mengimplementasikan unit testing dengan Vitest dan Testing Library, serta mengoptimalkan performa aplikasi CSR & SSR lintas desktop dan mobile browser.",
+      "Building web banking applications for BRI, focusing on the BRI Universal Biller platform. Wrote unit tests with Vitest and Testing Library, and optimized page rendering across desktop and mobile browsers.",
     tags: ["Next.js", "TypeScript", "Tailwind CSS", "React Hooks", "Vitest", "Testing Library"],
     tone: "#f6f9f8",
   },
   {
     id: "infomedia-telkom",
-    period: "April 2024 – Maret 2025",
-    title: "Frontend Developer (Telkom Indonesia)",
-    org: "PT Infomedia Solusi Humanika • PT Telkom Indonesia",
+    period: "Apr 2024 - Mar 2025",
+    title: "Frontend Developer",
+    org: "PT Infomedia Solusi Humanika (Client: Telkom Indonesia)",
     summary:
-      "Membangun dan merawat aplikasi web responsif untuk produk edukasi dan layanan digital Telkom Indonesia (Pijar Sekolah, Pijar Belajar, Lovit Superapp, Pijar Camp, dan Pijar Mahir). Menjamin kualitas kode dengan pengujian unit Jest & Testing Library dalam sprint Agile/Scrum.",
-    tags: ["React.js", "Next.js", "TypeScript", "Redux", "Tailwind CSS", "Legion UI", "Jest"],
+      "Maintained and shipped responsive web features for Telkom Indonesia education and health products, including Pijar Sekolah and Lovit Superapp. Maintained high test coverage with Jest and collaborated closely in Agile sprints.",
+    tags: ["React", "Next.js", "TypeScript", "Redux", "Tailwind CSS", "Legion UI", "Jest"],
     tone: "#eef5f2",
   },
   {
     id: "solusi-konvergen-telkom",
-    period: "Januari 2022 – Maret 2024",
-    title: "Frontend Developer (Telkom Indonesia)",
-    org: "PT Solusi Konvergen Indonesia • PT Telkom Indonesia",
+    period: "Jan 2022 - Mar 2024",
+    title: "Frontend Developer",
+    org: "PT Solusi Konvergen Indonesia (Client: Telkom Indonesia)",
     summary:
-      "Mengembangkan aplikasi web skala besar dengan arsitektur SSR & CSR untuk platform Pijar Mahir, Pijar Camp, dan Lovit Superapp. Mengintegrasikan RESTful API dengan Redux dan SWR untuk manajemen state, caching, dan data fetching real-time.",
-    tags: ["Next.js", "React.js", "TypeScript", "Redux", "SWR", "Tailwind CSS", "Material UI"],
+      "Engineered SSR and CSR web applications for large-scale platforms including Pijar Mahir and Pijar Camp. Integrated REST APIs with Redux and SWR for real-time state caching and reliable data fetching.",
+    tags: ["Next.js", "React", "TypeScript", "Redux", "SWR", "Tailwind CSS", "Material UI"],
     tone: "#f4f0f7",
   },
   {
     id: "cahaya-mitra-telkom",
-    period: "Juni 2021 – Desember 2021",
-    title: "Frontend Developer (Telkom Indonesia)",
-    org: "PT Cahaya Mitra Solusi • PT Telkom Indonesia",
+    period: "Jun 2021 - Dec 2021",
+    title: "Frontend Developer",
+    org: "PT Cahaya Mitra Solusi (Client: Telkom Indonesia)",
     summary:
-      "Membangun modul marketplace interaktif dan fitur registrasi bootcamp pada platform Pijar Mahir & Pijar Camp. Mengimplementasikan tracking analitik dengan Google Analytics 4 dan Google Tag Manager, serta menerjemahkan mockup Figma menjadi komponen React modular.",
-    tags: ["Next.js", "React.js", "TypeScript", "Tailwind CSS", "Redux", "Google Analytics", "GTM"],
+      "Built interactive course marketplace modules and bootcamp registration flows on Pijar Mahir. Added user event tracking with Google Analytics 4 and Tag Manager, translating Figma designs into modular React components.",
+    tags: ["Next.js", "React", "TypeScript", "Tailwind CSS", "Redux", "Google Analytics", "GTM"],
     tone: "#edf4f7",
   },
   {
     id: "bee-solution-partners",
-    period: "April 2019 – Juni 2021",
+    period: "Apr 2019 - Jun 2021",
     title: "Programmer / Frontend Developer",
-    org: "PT Bee Solution Partners • PT Telkom Indonesia",
+    org: "PT Bee Solution Partners (Client: Telkom Indonesia)",
     summary:
-      "Mengembangkan aplikasi dashboard dan portal pengujian konfigurasi akun merchant (INPOIN & DTP DSA). Memulai fase awal arsitektur dan pengembangan platform marketplace dan LMS Pijar Mahir menggunakan React.js.",
-    tags: ["React.js", "JavaScript", "Material UI", "Redux", "REST API", "Jest", "Java"],
+      "Developed merchant account configuration dashboards and testing portals for INPOIN and DTP DSA. Led initial frontend implementation of the Pijar Mahir learning platform using React.",
+    tags: ["React", "JavaScript", "Material UI", "Redux", "REST API", "Jest", "Java"],
     tone: "#f8f2ec",
   },
   {
     id: "inti-bumi-perkasa",
-    period: "Agustus 2014 – Maret 2019",
-    title: "Electric Technician & Software Support",
+    period: "Aug 2014 - Mar 2019",
+    title: "Electrical Technician & Software Support",
     org: "PT Inti Bumi Perkasa",
     summary:
-      "Bertanggung jawab atas pemeliharaan kelistrikan dan keandalan operasional peralatan lapangan. Mengembangkan aplikasi Android (Deviasi kWh Meter) untuk mengotomasi kalkulasi nilai deviasi meteran pada proyek PT PLN (Persero) Rayon Bandung Selatan.",
+      "Maintained electrical equipment and operational field reliability. Built an Android utility app to automate kWh meter deviation calculations for PLN Bandung Selatan, replacing error-prone manual calculations.",
     tags: ["Java", "Android Studio", "HTML", "Git"],
     tone: "#f7f0ee",
   },
   {
     id: "education-sttb",
-    period: "2014 – 2018",
-    title: "S1 Teknik Informatika (Bachelor of IT)",
+    period: "2014 - 2018",
+    title: "Bachelor of Information Technology",
     org: "Sekolah Tinggi Teknologi Bandung (STTB)",
     summary:
-      "Lulusan Sarjana Komputer jurusan Teknik Informatika dengan fondasi mendalam di bidang Software Engineering, arsitektur web, algoritma, dan rekayasa basis data.",
-    tags: ["Teknik Informatika", "Software Engineering", "Computer Science"],
+      "Graduated with a degree in Information Technology, building core foundations in software engineering, database design, algorithms, and web application development.",
+    tags: ["Information Technology", "Computer Science", "Software Engineering"],
     tone: "#f4f6f0",
   },
 ];

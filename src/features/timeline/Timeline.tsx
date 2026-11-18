@@ -77,13 +77,13 @@ export default function Timeline() {
   return (
     <section
       ref={section}
-      id="perjalanan"
+      id="experience"
       className="relative z-10 rounded-t-[2.5rem] bg-paper text-ink"
     >
       <div className="mx-auto max-w-5xl px-6 pt-28 md:pt-40">
-        <h2 className="font-display text-4xl font-bold tracking-tight md:text-6xl">Perjalanan</h2>
+        <h2 className="font-display text-4xl font-bold tracking-tight md:text-6xl">Experience</h2>
         <p className="mt-4 max-w-md text-lg text-ink/70">
-          Pekerjaan, proyek, dan pendidikan yang membawa saya sampai di sini.
+          Selected work, engineering projects, and academic background.
         </p>
       </div>
 
