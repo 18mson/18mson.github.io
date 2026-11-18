@@ -49,7 +49,7 @@ export default function Projects() {
           scrollTrigger: {
             trigger: containerEl,
             start: "top top",
-            end: () => `+=${getScrollDistance() + window.innerHeight * 0.7}`,
+            end: () => `+=${getScrollDistance() + window.innerHeight * 0.8}`,
             pin: true,
             scrub: 1,
             invalidateOnRefresh: true,
@@ -63,12 +63,12 @@ export default function Projects() {
         // 2. Animasi horizontal reel card
         tl.to(trackEl, {
           x: () => -getScrollDistance(),
-          duration: 2,
+          duration: 2.2,
           ease: "none",
         });
 
-        // 3. Buffer jeda akhir: card terakhir tertahan sejenak sebelum unpin
-        tl.to({}, { duration: 0.4 });
+        // 3. Buffer jeda akhir: memberi jeda setelah card terakhir dan space kosong terlihat jelas
+        tl.to({}, { duration: 0.6 });
       });
 
       return () => mm.revert();
@@ -103,9 +103,8 @@ export default function Projects() {
                   onClick={() => scrollToMobileCard(idx)}
                   aria-label={`Go to project ${idx + 1}`}
                   aria-selected={activeMobileIndex === idx}
-                  className={`h-2 rounded-full transition-all duration-300 ${
-                    activeMobileIndex === idx ? "w-8 bg-koi" : "w-2 bg-ink/20 hover:bg-ink/40"
-                  }`}
+                  className={`h-2 rounded-full transition-all duration-300 ${activeMobileIndex === idx ? "w-8 bg-koi" : "w-2 bg-ink/20 hover:bg-ink/40"
+                    }`}
                 />
               ))}
             </div>
@@ -123,7 +122,7 @@ export default function Projects() {
           onScroll={handleMobileScroll}
           style={{
             paddingLeft: "max(1.5rem, calc((100vw - 64rem) / 2 + 1.5rem))",
-            paddingRight: "max(24vw, calc((100vw - 64rem) / 2 + 18rem))",
+            paddingRight: "max(1.5rem, calc((100vw - 64rem) / 2 + 1.5rem))",
           }}
           className="flex gap-5 overflow-x-auto snap-x snap-mandatory scrollbar-none touch-pan-y md:overflow-visible md:snap-none md:gap-6"
         >
@@ -132,6 +131,12 @@ export default function Projects() {
               <ProjectCard project={item} />
             </div>
           ))}
+
+          {/* Physical trailing spacer to ensure card 04 scrolls well inward into view */}
+          <div
+            aria-hidden="true"
+            className="w-[40vw] max-w-150 shrink-0 pointer-events-none md:w-[48vw]"
+          />
         </div>
       </div>
     </section>
