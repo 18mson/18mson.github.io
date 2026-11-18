@@ -12,6 +12,7 @@ export default function Timeline() {
   const list = useRef<HTMLDivElement>(null);
   const track = useRef<HTMLDivElement>(null);
   const fill = useRef<HTMLDivElement>(null);
+  const indicator = useRef<HTMLDivElement>(null);
 
   useGSAP(
     () => {
@@ -53,12 +54,15 @@ export default function Timeline() {
           });
         });
 
-        // Posisikan garis agar persis dimulai dari titik pertama sampai titik terakhir (tanpa garis di atasnya)
         const trackEl = track.current;
         const fillEl = fill.current;
+        const indicatorEl = indicator.current;
         const wrap = list.current;
 
-        const updateLinePosition = () => {
+        let startY = 0;
+        let endY = 0;
+
+        const updateLineBounds = () => {
           if (!trackEl || !fillEl || !wrap || items.length === 0) return;
           const firstNode = items[0].querySelector<HTMLElement>(".tl-node");
           const lastNode = items[items.length - 1].querySelector<HTMLElement>(".tl-node");
@@ -68,8 +72,8 @@ export default function Timeline() {
           const firstRect = firstNode.getBoundingClientRect();
           const lastRect = lastNode.getBoundingClientRect();
 
-          const startY = firstRect.top - listRect.top + firstRect.height / 2;
-          const endY = lastRect.top - listRect.top + lastRect.height / 2;
+          startY = firstRect.top - listRect.top + firstRect.height / 2;
+          endY = lastRect.top - listRect.top + lastRect.height / 2;
           const totalLineHeight = Math.max(0, endY - startY);
 
           trackEl.style.top = `${startY}px`;
@@ -77,47 +81,53 @@ export default function Timeline() {
           trackEl.style.opacity = "1";
 
           fillEl.style.top = `${startY}px`;
-          fillEl.style.height = `${totalLineHeight}px`;
-          fillEl.style.opacity = "1";
+          if (indicatorEl) indicatorEl.style.opacity = "1";
+
+          updateProgress();
         };
 
-        updateLinePosition();
-        ScrollTrigger.addEventListener("refresh", updateLinePosition);
+        const updateProgress = () => {
+          if (!wrap || !fillEl || !indicatorEl || items.length === 0) return;
+          const listRect = wrap.getBoundingClientRect();
+          const vh = window.innerHeight;
+          const vhCenterInWrap = vh / 2 - listRect.top;
 
-        // Garis progres berhenti tepat di titik tengah
-        if (fillEl && wrap) {
-          const setScale = gsap.quickSetter(fillEl, "scaleY");
-          ScrollTrigger.create({
-            trigger: wrap,
-            start: "top bottom",
-            end: "bottom top",
-            onUpdate: () => {
-              if (items.length === 0) return;
-              const firstNode = items[0].querySelector<HTMLElement>(".tl-node");
-              const lastNode = items[items.length - 1].querySelector<HTMLElement>(".tl-node");
-              if (!firstNode || !lastNode) return;
+          // Titik aktif mulai tepat dari titik teratas (startY) dan berhenti di titik terbawah (endY)
+          const dotY = Math.min(endY, Math.max(startY, vhCenterInWrap));
+          indicatorEl.style.top = `${dotY}px`;
 
-              const vh = window.innerHeight;
-              const firstRect = firstNode.getBoundingClientRect();
-              const lastRect = lastNode.getBoundingClientRect();
-              const firstCenter = firstRect.top + firstRect.height / 2;
-              const lastCenter = lastRect.top + lastRect.height / 2;
-              const totalDistance = lastCenter - firstCenter;
+          const filledHeight = Math.max(0, dotY - startY);
+          fillEl.style.height = `${filledHeight}px`;
+          fillEl.style.opacity = filledHeight > 0 ? "1" : "0";
+        };
 
-              if (totalDistance <= 0) {
-                setScale(0);
-                return;
-              }
+        updateLineBounds();
 
-              const dotScreenY = vh / 2;
-              const progress = (dotScreenY - firstCenter) / totalDistance;
-              setScale(Math.min(1, Math.max(0, progress)));
-            },
-          });
+        // Update saat font selesai loading agar kalkulasi tinggi kartu dan titik presisi
+        if (typeof document !== "undefined" && document.fonts) {
+          document.fonts.ready.then(updateLineBounds);
         }
 
+        // ResizeObserver agar selalu akurat saat reflow
+        let ro: ResizeObserver | null = null;
+        if (typeof ResizeObserver !== "undefined" && wrap) {
+          ro = new ResizeObserver(updateLineBounds);
+          ro.observe(wrap);
+        }
+
+        ScrollTrigger.addEventListener("refresh", updateLineBounds);
+
+        // Scroll update untuk posisi titik tengah dan pengisian garis progres
+        ScrollTrigger.create({
+          trigger: wrap,
+          start: "top bottom",
+          end: "bottom top",
+          onUpdate: updateProgress,
+        });
+
         return () => {
-          ScrollTrigger.removeEventListener("refresh", updateLinePosition);
+          if (ro) ro.disconnect();
+          ScrollTrigger.removeEventListener("refresh", updateLineBounds);
         };
       });
       return () => mm.revert();
@@ -139,23 +149,28 @@ export default function Timeline() {
       </div>
 
       <div ref={list} className="relative mx-auto max-w-5xl">
-        {/* Titik tengah: sticky di tengah layar, tidak memakan tinggi. */}
-        <div aria-hidden className="pointer-events-none sticky top-0 z-20 -mb-[100svh] h-svh">
-          <div className="absolute top-1/2 left-7 size-4 -translate-x-1/2 -translate-y-1/2 rounded-full bg-koi ring-8 ring-koi/20 md:left-1/2" />
-        </div>
-
-        {/* Garis dasar + garis progres (mulai tepat dari titik pertama sampai titik terakhir) */}
+        {/* Garis dasar (abu-abu) mulai dari titik pertama sampai titik terakhir */}
         <div
           ref={track}
           aria-hidden
           style={{ opacity: 0 }}
           className="absolute left-7 w-px -translate-x-1/2 bg-ink/15 transition-opacity duration-300 md:left-1/2"
         />
+
+        {/* Garis progres (oranye) mulai dari titik pertama mengikuti titik aktif */}
         <div
           ref={fill}
           aria-hidden
           style={{ opacity: 0 }}
-          className="absolute left-7 w-px origin-top -translate-x-1/2 scale-y-0 bg-koi transition-opacity duration-300 md:left-1/2"
+          className="absolute left-7 w-px -translate-x-1/2 bg-koi transition-opacity duration-300 md:left-1/2"
+        />
+
+        {/* Titik indikator aktif: mulai dari titik teratas, lalu mengikuti posisi scroll di tengah */}
+        <div
+          ref={indicator}
+          aria-hidden
+          style={{ opacity: 0 }}
+          className="pointer-events-none absolute left-7 z-20 size-4 -translate-x-1/2 -translate-y-1/2 rounded-full bg-koi ring-8 ring-koi/20 transition-opacity duration-300 md:left-1/2"
         />
 
         <div className="h-8 md:h-12" />
