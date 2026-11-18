@@ -46,31 +46,25 @@ export default function Hero({ koi, children }: HeroProps) {
   );
 
   return (
-    <section ref={root} className="relative h-[200vh] h-[200svh] bg-water">
+    <section ref={root} className="relative h-[200vh] bg-water">
       {/* Kolam: hanya setinggi layar pertama, jadi ikut bergulir ke atas. */}
       <div className="absolute inset-x-0 top-0 h-svh overflow-hidden">
         {koi ?? children}
       </div>
 
       {/* Lapisan nama: sticky + blend difference supaya warna huruf terbalik terhadap yang ada di belakangnya. */}
-      <div className="pointer-events-none sticky top-0 flex h-svh flex-col items-center justify-center px-4 text-white mix-blend-difference">
+      <div className="pointer-events-none sticky top-0 flex h-svh w-full flex-col items-center justify-center px-4 text-center text-white mix-blend-difference">
         <h1
           ref={name}
-          className="font-name text-[clamp(3.25rem,16vw,16rem)] leading-[1.05] font-extrabold tracking-tight"
+          className="w-full text-center font-name text-[clamp(3.25rem,16vw,16rem)] leading-[1.05] font-extrabold tracking-tight"
         >
           {profile.name}
         </h1>
         <p
           ref={role}
-          className="mt-4 text-lg font-medium opacity-0 motion-reduce:opacity-100 md:text-2xl"
+          className="mt-4 text-center text-lg font-medium opacity-0 motion-reduce:opacity-100 md:text-2xl"
         >
           {profile.role}
-        </p>
-        <p
-          className={`absolute bottom-8 text-sm transition-opacity duration-700 ${fed ? "opacity-0" : "opacity-80"}`}
-        >
-          <span className="[@media(hover:none)]:hidden">Gerakkan kursor di atas kolam untuk memberi makan ikan.</span>
-          <span className="hidden [@media(hover:none)]:inline">Sentuh kolam untuk memberi makan ikan.</span>
         </p>
       </div>
     </section>

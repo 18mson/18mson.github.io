@@ -43,28 +43,92 @@ export const layoutPads = (w: number, h: number, scale: number, existingPads: Pa
   return pads;
 };
 
-export const updatePads = (pads: Pad[], fish: Fish[], dt: number, t: number, w: number, h: number) => {
+export const updatePads = (pads: Pad[], fish: Fish[], dt: number, _t: number, w: number, h: number) => {
   for (const p of pads) {
-    const hx = p.fx * w + Math.sin(t * 0.2 + p.ph) * 6;
-    const hy = p.fy * h + Math.cos(t * 0.17 + p.ph) * 5;
-    // Pegas pelan ke posisi asal, redaman supaya tidak bergoyang terus
-    p.vx += (hx - p.x) * 3 * dt - p.vx * 2.2 * dt;
-    p.vy += (hy - p.y) * 3 * dt - p.vy * 2.2 * dt;
-    // Terdorong kepala ikan yang lewat
+    // 1) Terdorong oleh ikan (kepala dan bagian depan tubuh)
     for (const f of fish) {
-      const head = f.pts[0];
-      const dx = p.x - head.x;
-      const dy = p.y - head.y;
-      const d = Math.hypot(dx, dy);
-      const reach = p.r + f.len * 0.12;
-      if (d < reach && d > 0.001) {
-        const k = (1 - d / reach) * 220 * dt;
-        p.vx += (dx / d) * k;
-        p.vy += (dy / d) * k;
+      for (let s = 0; s < Math.min(3, f.pts.length); s++) {
+        const pt = f.pts[s];
+        const dx = p.x - pt.x;
+        const dy = p.y - pt.y;
+        const d = Math.hypot(dx, dy);
+        const reach = p.r + f.len * (0.13 - s * 0.02);
+        if (d < reach && d > 0.001) {
+          const overlap = 1 - d / reach;
+          // Dorongan bertambah jika ikan sedang melaju cepat
+          const pushForce = overlap * (140 + f.v * (1.0 - s * 0.2)) * dt;
+          p.vx += (dx / d) * pushForce;
+          p.vy += (dy / d) * pushForce;
+        }
       }
     }
+
+    // 2) Tolakan halus antar-teratai agar tidak saling menumpuk rapat
+    for (const other of pads) {
+      if (other === p) continue;
+      const ox = p.x - other.x;
+      const oy = p.y - other.y;
+      const dist = Math.hypot(ox, oy);
+      const minDist = (p.r + other.r) * 0.9;
+      if (dist < minDist && dist > 0.001) {
+        const overlap = (minDist - dist) / minDist;
+        const push = overlap * 60 * dt;
+        p.vx += (ox / dist) * push;
+        p.vy += (oy / dist) * push;
+      }
+    }
+
+    // 3) Gesekan/hambatan air (drag): melamban secara bertahap lalu berhenti di mana pun
+    const drag = Math.max(0, 1 - 1.6 * dt);
+    p.vx *= drag;
+    p.vy *= drag;
+
+    // Hentikan sepenuhnya jika laju sudah sangat kecil
+    if (Math.hypot(p.vx, p.vy) < 0.2) {
+      p.vx = 0;
+      p.vy = 0;
+    }
+
+    // 4) Tolakan lembut dari tepi kolam agar tetap terlihat di dalam layar
+    const margin = p.r * 1.1;
+    if (p.x < margin) {
+      p.vx += ((margin - p.x) / margin) * 100 * dt;
+      if (p.x < p.r * 0.6) {
+        p.x = p.r * 0.6;
+        p.vx = Math.max(0, p.vx * 0.2);
+      }
+    } else if (p.x > w - margin) {
+      p.vx -= ((p.x - (w - margin)) / margin) * 100 * dt;
+      if (p.x > w - p.r * 0.6) {
+        p.x = w - p.r * 0.6;
+        p.vx = -Math.max(0, -p.vx * 0.2);
+      }
+    }
+
+    if (p.y < margin) {
+      p.vy += ((margin - p.y) / margin) * 100 * dt;
+      if (p.y < p.r * 0.6) {
+        p.y = p.r * 0.6;
+        p.vy = Math.max(0, p.vy * 0.2);
+      }
+    } else if (p.y > h - margin) {
+      p.vy -= ((p.y - (h - margin)) / margin) * 100 * dt;
+      if (p.y > h - p.r * 0.6) {
+        p.y = h - p.r * 0.6;
+        p.vy = -Math.max(0, -p.vy * 0.2);
+      }
+    }
+
+    // 5) Integrasi pergerakan posisi dan rotasi
     p.x += p.vx * dt;
     p.y += p.vy * dt;
+    p.rot += (p.vx * 0.008 - p.vy * 0.008) * dt;
+
+    // Simpan rasio posisi (fx, fy) agar saat resize layar tetap proporsional
+    if (w > 0 && h > 0) {
+      p.fx = p.x / w;
+      p.fy = p.y / h;
+    }
   }
 };
 
