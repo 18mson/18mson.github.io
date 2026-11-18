@@ -110,7 +110,7 @@ export default function Projects() {
               ))}
             </div>
             <span className="text-xs font-semibold text-ink/70 tabular-nums">
-              {String(activeMobileIndex + 1).padStart(2, "0")} / {String(projects.length).padStart(2, "0")} · Swipe →
+              {String(activeMobileIndex + 1).padStart(2, "0")} / {String(projects.length).padStart(2, "0")} · {activeMobileIndex === projects.length - 1 ? "Complete" : "Swipe →"}
             </span>
           </div>
         </div>
@@ -123,7 +123,7 @@ export default function Projects() {
           onScroll={handleMobileScroll}
           style={{
             paddingLeft: "max(1.5rem, calc((100vw - 64rem) / 2 + 1.5rem))",
-            paddingRight: "max(1.5rem, calc((100vw - 64rem) / 2 + 1.5rem))",
+            paddingRight: "max(24vw, calc((100vw - 64rem) / 2 + 18rem))",
           }}
           className="flex gap-5 overflow-x-auto snap-x snap-mandatory scrollbar-none touch-pan-y md:overflow-visible md:snap-none md:gap-6"
         >
