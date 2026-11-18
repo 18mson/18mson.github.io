@@ -4,7 +4,7 @@ import "@fontsource-variable/instrument-sans";
 // Font nama: hanya subset latin, jadi ringan. Ganti ke bobot/font lain di sini dan di --font-name.
 import "@fontsource/shippori-mincho/latin-800.css";
 import "./globals.css";
-import { profile } from "@/data/profile";
+import { profile } from "@/content/profile";
 
 export const metadata: Metadata = {
   title: `${profile.name} — ${profile.role}`,

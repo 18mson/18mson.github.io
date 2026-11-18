@@ -15,7 +15,10 @@ export default function KoiCanvas({ onFirstFeed }: { onFirstFeed?: () => void })
 
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     const pond = new KoiPond(canvas, { reducedMotion: reduced });
-    pond.onFirstFeed = () => feedRef.current?.();
+    pond.onFirstFeed = () => {
+      feedRef.current?.();
+      window.dispatchEvent(new CustomEvent("koi:first-feed"));
+    };
 
     const measure = () => pond.resize(canvas.clientWidth, canvas.clientHeight, window.devicePixelRatio || 1);
     measure();

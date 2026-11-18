@@ -1,15 +1,25 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { gsap, useGSAP } from "@/lib/gsap";
-import KoiCanvas from "@/components/koi/KoiCanvas";
-import { profile } from "@/data/profile";
+import { profile } from "@/content/profile";
 
-export default function Hero() {
+interface HeroProps {
+  koi?: ReactNode;
+  children?: ReactNode;
+}
+
+export default function Hero({ koi, children }: HeroProps) {
   const root = useRef<HTMLElement>(null);
   const name = useRef<HTMLHeadingElement>(null);
   const role = useRef<HTMLParagraphElement>(null);
   const [fed, setFed] = useState(false);
+
+  useEffect(() => {
+    const handleFeed = () => setFed(true);
+    window.addEventListener("koi:first-feed", handleFeed, { once: true });
+    return () => window.removeEventListener("koi:first-feed", handleFeed);
+  }, []);
 
   useGSAP(
     () => {
@@ -39,7 +49,7 @@ export default function Hero() {
     <section ref={root} className="relative h-[200vh] h-[200svh] bg-water">
       {/* Kolam: hanya setinggi layar pertama, jadi ikut bergulir ke atas. */}
       <div className="absolute inset-x-0 top-0 h-svh overflow-hidden">
-        <KoiCanvas onFirstFeed={() => setFed(true)} />
+        {koi ?? children}
       </div>
 
       {/* Lapisan nama: sticky + blend difference supaya warna huruf terbalik terhadap yang ada di belakangnya. */}
