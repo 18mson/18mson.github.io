@@ -11,6 +11,18 @@
   --color-paper: #f6f9f8;
 }
 
+:root {
+  --color-card: #ffffff;
+}
+
+html.dark {
+  --color-ink: #e2eceb;
+  --color-koi: #ff6e3a;
+  --color-water: #071719;
+  --color-paper: #091314;
+  --color-card: #0f1f21;
+}
+
 html {
   background: var(--color-paper);
 }
@@ -21,6 +33,7 @@ body {
   font-family: var(--font-body);
   -webkit-font-smoothing: antialiased;
   overflow-x: clip;
+  transition: background-color 0.4s ease, color 0.4s ease;
 }
 
 /* ---- Timeline states (toggled by ScrollTrigger) ---- */
@@ -39,7 +52,8 @@ body {
   scale: 1.5;
 }
 .tl-card {
-  transition: border-color 0.4s;
+  background-color: var(--color-card);
+  transition: border-color 0.4s, background-color 0.4s;
 }
 .tl-item.is-active .tl-card {
   border-color: color-mix(in oklab, var(--color-koi) 60%, transparent);

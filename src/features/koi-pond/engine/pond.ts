@@ -24,6 +24,43 @@ export class KoiPond {
 
   private pointer = { x: 0, y: 0, inside: false, lastMove: -10, lastX: 0, lastY: 0, travel: 0, lastRipple: -10 };
 
+  private _isDark = false;
+
+  /** Status tema (selalu sinkron dengan document.documentElement). */
+  get isDark(): boolean {
+    if (typeof document !== "undefined") {
+      return document.documentElement.classList.contains("dark");
+    }
+    return this._isDark;
+  }
+
+  set isDark(val: boolean) {
+    this._isDark = val;
+    if (typeof document !== "undefined") {
+      document.documentElement.classList.toggle("dark", val);
+    }
+  }
+
+  get isTransitioning(): boolean {
+    return this.themeTransition !== null;
+  }
+
+  /** Callback saat transisi ripple dimulai dan selesai. */
+  onThemeToggleStart?: (targetDark: boolean, x: number, y: number, duration: number) => void;
+  onThemeToggleEnd?: (isDark: boolean) => void;
+
+  private themeTransition: {
+    x: number;
+    y: number;
+    r: number;
+    startR: number;
+    maxR: number;
+    duration: number;
+    elapsed: number;
+    fromDark: boolean;
+    targetDark: boolean;
+  } | null = null;
+
   /** Dipanggil sekali, saat pengguna pertama kali menyentuh/menggerakkan kursor di kolam. */
   onFirstFeed?: () => void;
 
@@ -96,12 +133,83 @@ export class KoiPond {
     this.firstFeed();
   }
 
-  pointerDown(x: number, y: number) {
+  getLargestPad(): Pad | null {
+    if (this.pads.length === 0) return null;
+    return this.pads.reduce((max, p) => (p.r > max.r ? p : max), this.pads[0]);
+  }
+
+  isOverLargestPad(x: number, y: number): boolean {
+    const largest = this.getLargestPad();
+    if (!largest) return false;
+    return Math.hypot(x - largest.x, y - largest.y) <= largest.r;
+  }
+
+  triggerThemeTransition(pad?: Pad) {
+    if (this.themeTransition) return;
+    const targetPad = pad ?? this.getLargestPad();
+    if (!targetPad) return;
+
+    const targetDark = !this.isDark;
+    const duration = 1.1;
+
+    // Hentikan teratai seketika dan bekukan selama durasi transisi
+    targetPad.vx = 0;
+    targetPad.vy = 0;
+    targetPad.freezeTimer = duration;
+
+    // Tambahkan riak air ganda di posisi teratai
+    addRipple(this.ripples, targetPad.x, targetPad.y, targetPad.r * 2.4, 0.95, 2.6, this.scale);
+    addRipple(this.ripples, targetPad.x, targetPad.y, targetPad.r * 1.6, 0.75, 1.8, this.scale);
+
+    const maxR = Math.hypot(
+      Math.max(targetPad.x, this.w - targetPad.x),
+      Math.max(targetPad.y, this.h - targetPad.y)
+    ) * 1.1;
+
+    this.themeTransition = {
+      x: targetPad.x,
+      y: targetPad.y,
+      r: targetPad.r,
+      startR: targetPad.r,
+      maxR,
+      duration,
+      elapsed: 0,
+      fromDark: this.isDark,
+      targetDark,
+    };
+
+    this.onThemeToggleStart?.(targetDark, targetPad.x, targetPad.y, duration);
+  }
+
+  /** Menyelesaikan transisi tema seketika (dipanggil di akhir animasi atau saat user men-scroll). */
+  completeThemeTransition() {
+    if (!this.themeTransition) return;
+    const targetDark = this.themeTransition.targetDark;
+    this.themeTransition = null;
+    this.isDark = targetDark;
+
+    for (const p of this.pads) {
+      if (p.freezeTimer) p.freezeTimer = 0;
+    }
+
+    this.onThemeToggleEnd?.(targetDark);
+  }
+
+  pointerDown(x: number, y: number, allowEasterEgg = true) {
     if (x < 0 || y < 0 || x > this.w || y > this.h) return;
     this.pointer.x = x;
     this.pointer.y = y;
     this.pointer.inside = true;
     this.pointer.lastMove = this.t;
+
+    // Periksa apakah klik tepat pada teratai terbesar (Easter Egg hanya aktif saat kolam penuh di puncak)
+    const largest = this.getLargestPad();
+    if (allowEasterEgg && largest && !this.themeTransition && Math.hypot(x - largest.x, y - largest.y) <= largest.r) {
+      this.triggerThemeTransition(largest);
+      this.firstFeed();
+      return;
+    }
+
     addRipple(this.ripples, x, y, 150, 0.6, 2.4, this.scale);
     for (let i = 0; i < 5 && this.pellets.length < MAX_PELLETS; i++) {
       const a = rand(0, TAU);
@@ -135,6 +243,18 @@ export class KoiPond {
   /* -------------------------------------------------------------- update */
 
   private update(dt: number) {
+    if (this.themeTransition) {
+      this.themeTransition.elapsed += dt;
+      const progress = Math.min(1, this.themeTransition.elapsed / this.themeTransition.duration);
+      const ease = 1 - Math.pow(1 - progress, 2.5);
+      this.themeTransition.r =
+        this.themeTransition.startR + (this.themeTransition.maxR - this.themeTransition.startR) * ease;
+
+      if (progress >= 1) {
+        this.completeThemeTransition();
+      }
+    }
+
     updatePellets(this.pellets, dt, (x, y) => {
       addRipple(this.ripples, x, y, 34, 0.4, 1.6, this.scale);
     });
@@ -176,20 +296,108 @@ export class KoiPond {
     c.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
     c.clearRect(0, 0, this.w, this.h);
 
-    // Bayangan di dasar kolam
-    c.save();
-    c.translate(6 * this.scale, 11 * this.scale);
-    c.fillStyle = "rgba(8,48,52,0.10)";
-    for (const f of this.fish) {
-      trace(c, f.outline);
+    // Dasar air saat mode gelap atau transisi gelombang riak air
+    if (this.themeTransition) {
+      const tr = this.themeTransition;
+      c.save();
+      // Warna dasar kolam sebelum lingkaran ripple menyebar
+      c.fillStyle = tr.fromDark ? "#071719" : "#d2e8e4";
+      c.fillRect(0, 0, this.w, this.h);
+
+      // Lingkaran air yang mengembang dari posisi teratai
+      c.beginPath();
+      c.arc(tr.x, tr.y, tr.r, 0, TAU);
+      c.fillStyle = tr.targetDark ? "#071719" : "#d2e8e4";
       c.fill();
+
+      // Gelombang riak air (shockwave ripple crests) di bibir lingkaran yang merambat
+      const strokeBase = tr.targetDark ? "rgba(120, 240, 230," : "rgba(12, 56, 60,";
+      c.beginPath();
+      c.arc(tr.x, tr.y, tr.r, 0, TAU);
+      c.lineWidth = 3.5 * this.scale;
+      c.strokeStyle = `${strokeBase} 0.75)`;
+      c.stroke();
+
+      if (tr.r > 20 * this.scale) {
+        c.beginPath();
+        c.arc(tr.x, tr.y, tr.r - 14 * this.scale, 0, TAU);
+        c.lineWidth = 2 * this.scale;
+        c.strokeStyle = `${strokeBase} 0.4)`;
+        c.stroke();
+      }
+
+      c.beginPath();
+      c.arc(tr.x, tr.y, tr.r + 10 * this.scale, 0, TAU);
+      c.lineWidth = 1.2 * this.scale;
+      c.strokeStyle = `${strokeBase} 0.25)`;
+      c.stroke();
+      c.restore();
+    } else {
+      c.save();
+      c.fillStyle = this.isDark ? "#071719" : "#d2e8e4";
+      c.fillRect(0, 0, this.w, this.h);
+      c.restore();
     }
-    c.restore();
+
+    // Bayangan di dasar kolam (berubah berbarengan mengikuti lingkaran gelombang riak air)
+    if (this.themeTransition) {
+      const tr = this.themeTransition;
+
+      // 1. Bayangan di LUAR gelombang riak air (tema asal)
+      c.save();
+      c.beginPath();
+      c.rect(0, 0, this.w, this.h);
+      c.arc(tr.x, tr.y, tr.r, 0, TAU, true);
+      c.clip();
+      c.translate(6 * this.scale, 11 * this.scale);
+      c.fillStyle = tr.fromDark ? "rgba(0,0,0,0.45)" : "rgba(8,48,52,0.10)";
+      for (const f of this.fish) {
+        trace(c, f.outline);
+        c.fill();
+      }
+      c.restore();
+
+      // 2. Bayangan di DALAM gelombang riak air (tema baru yang sedang menyebar)
+      c.save();
+      c.beginPath();
+      c.arc(tr.x, tr.y, tr.r, 0, TAU);
+      c.clip();
+      c.translate(6 * this.scale, 11 * this.scale);
+      c.fillStyle = tr.targetDark ? "rgba(0,0,0,0.45)" : "rgba(8,48,52,0.10)";
+      for (const f of this.fish) {
+        trace(c, f.outline);
+        c.fill();
+      }
+      c.restore();
+    } else {
+      c.save();
+      c.translate(6 * this.scale, 11 * this.scale);
+      c.fillStyle = this.isDark ? "rgba(0,0,0,0.45)" : "rgba(8,48,52,0.10)";
+      for (const f of this.fish) {
+        trace(c, f.outline);
+        c.fill();
+      }
+      c.restore();
+    }
 
     for (const f of this.fish) drawFish(c, f, this.scale, this.speed);
-    for (const p of this.pads) drawPad(c, p, this.t, this.scale);
-    for (const p of this.pads) if (p.flower) drawLotus(c, p, this.t);
+
+    // Render tiap teratai beserta bunganya sebagai satu kesatuan utuh
+    for (const p of this.pads) {
+      const inNewTheme = this.themeTransition
+        ? Math.hypot(p.x - this.themeTransition.x, p.y - this.themeTransition.y) <= this.themeTransition.r
+        : this.isDark;
+      const padDark = this.themeTransition
+        ? inNewTheme
+          ? this.themeTransition.targetDark
+          : this.themeTransition.fromDark
+        : this.isDark;
+
+      drawPad(c, p, this.t, this.scale, padDark);
+      if (p.flower) drawLotus(c, p, this.t);
+    }
+
     drawPellets(c, this.pellets, this.scale);
-    drawRipples(c, this.ripples);
+    drawRipples(c, this.ripples, this.isDark);
   }
 }

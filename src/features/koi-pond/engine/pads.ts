@@ -11,8 +11,10 @@ export const layoutPads = (w: number, h: number, scale: number, existingPads: Pa
     const newPads: Pad[] = [];
     let guard = 0;
     while (newPads.length < target && guard++ < 300) {
+      const isFirst = newPads.length === 0;
       const flower = newPads.length < flowers;
-      const baseR = flower ? rand(46, 58) : rand(30, 46);
+      // Pad pertama selalu teratai bunga terbesar (king lotus untuk Easter egg)
+      const baseR = isFirst ? rand(56, 62) : flower ? rand(44, 50) : rand(30, 44);
       const fx = rand(0.04, 0.96);
       const fy = rand(0.06, 0.94);
       if (Math.abs(fy - 0.5) < 0.16) continue;
@@ -44,8 +46,19 @@ export const layoutPads = (w: number, h: number, scale: number, existingPads: Pa
 };
 
 export const updatePads = (pads: Pad[], fish: Fish[], dt: number, _t: number, w: number, h: number) => {
+  // 1) Update gaya pada tiap teratai (dorongan ikan, drag, tepi kolam, dan integrasi posisi)
   for (const p of pads) {
-    // 1) Terdorong oleh ikan (kepala dan bagian depan tubuh)
+    if (p.freezeTimer && p.freezeTimer > 0) {
+      p.freezeTimer -= dt;
+      p.vx = 0;
+      p.vy = 0;
+      if (p.freezeTimer <= 0) {
+        p.freezeTimer = 0;
+      }
+      continue;
+    }
+
+    // Terdorong oleh ikan (kepala dan bagian depan tubuh)
     for (const f of fish) {
       for (let s = 0; s < Math.min(3, f.pts.length); s++) {
         const pt = f.pts[s];
@@ -55,7 +68,6 @@ export const updatePads = (pads: Pad[], fish: Fish[], dt: number, _t: number, w:
         const reach = p.r + f.len * (0.13 - s * 0.02);
         if (d < reach && d > 0.001) {
           const overlap = 1 - d / reach;
-          // Dorongan bertambah jika ikan sedang melaju cepat
           const pushForce = overlap * (140 + f.v * (1.0 - s * 0.2)) * dt;
           p.vx += (dx / d) * pushForce;
           p.vy += (dy / d) * pushForce;
@@ -63,33 +75,17 @@ export const updatePads = (pads: Pad[], fish: Fish[], dt: number, _t: number, w:
       }
     }
 
-    // 2) Tolakan halus antar-teratai agar tidak saling menumpuk rapat
-    for (const other of pads) {
-      if (other === p) continue;
-      const ox = p.x - other.x;
-      const oy = p.y - other.y;
-      const dist = Math.hypot(ox, oy);
-      const minDist = (p.r + other.r) * 0.9;
-      if (dist < minDist && dist > 0.001) {
-        const overlap = (minDist - dist) / minDist;
-        const push = overlap * 60 * dt;
-        p.vx += (ox / dist) * push;
-        p.vy += (oy / dist) * push;
-      }
-    }
-
-    // 3) Gesekan/hambatan air (drag): melamban secara bertahap lalu berhenti di mana pun
+    // Gesekan/hambatan air (drag)
     const drag = Math.max(0, 1 - 1.6 * dt);
     p.vx *= drag;
     p.vy *= drag;
 
-    // Hentikan sepenuhnya jika laju sudah sangat kecil
     if (Math.hypot(p.vx, p.vy) < 0.2) {
       p.vx = 0;
       p.vy = 0;
     }
 
-    // 4) Tolakan lembut dari tepi kolam agar tetap terlihat di dalam layar
+    // Tolakan dari tepi kolam
     const margin = p.r * 1.1;
     if (p.x < margin) {
       p.vx += ((margin - p.x) / margin) * 100 * dt;
@@ -119,20 +115,82 @@ export const updatePads = (pads: Pad[], fish: Fish[], dt: number, _t: number, w:
       }
     }
 
-    // 5) Integrasi pergerakan posisi dan rotasi
     p.x += p.vx * dt;
     p.y += p.vy * dt;
     p.rot += (p.vx * 0.008 - p.vy * 0.008) * dt;
+  }
 
-    // Simpan rasio posisi (fx, fy) agar saat resize layar tetap proporsional
-    if (w > 0 && h > 0) {
+  // 2) Deteksi & Pemisahan Tabrakan Fisik Antar-Teratai (Mencegah Overlap 100%)
+  for (let iter = 0; iter < 2; iter++) {
+    for (let i = 0; i < pads.length; i++) {
+      for (let j = i + 1; j < pads.length; j++) {
+        const p1 = pads[i];
+        const p2 = pads[j];
+        const dx = p2.x - p1.x;
+        const dy = p2.y - p1.y;
+        const dist = Math.hypot(dx, dy);
+        const minDist = p1.r + p2.r; // Tepi daun menyentuh tanpa overlap
+
+        if (dist < minDist && dist > 0.0001) {
+          const overlap = minDist - dist;
+          const nx = dx / dist;
+          const ny = dy / dist;
+
+          const p1Frozen = !!(p1.freezeTimer && p1.freezeTimer > 0);
+          const p2Frozen = !!(p2.freezeTimer && p2.freezeTimer > 0);
+
+          if (p1Frozen && !p2Frozen) {
+            // p1 diam/beku (teratai Easter egg), dorong p2 sepenuhnya keluar
+            p2.x += nx * overlap;
+            p2.y += ny * overlap;
+            const vn = p2.vx * nx + p2.vy * ny;
+            if (vn < 0) {
+              p2.vx -= 1.3 * vn * nx;
+              p2.vy -= 1.3 * vn * ny;
+            }
+          } else if (!p1Frozen && p2Frozen) {
+            // p2 diam/beku, dorong p1 sepenuhnya keluar
+            p1.x -= nx * overlap;
+            p1.y -= ny * overlap;
+            const vn = p1.vx * nx + p1.vy * ny;
+            if (vn > 0) {
+              p1.vx -= 1.3 * vn * nx;
+              p1.vy -= 1.3 * vn * ny;
+            }
+          } else if (!p1Frozen && !p2Frozen) {
+            // Keduanya bebas bergerak: pisahkan posisi 50% masing-masing
+            p1.x -= nx * (overlap * 0.5);
+            p1.y -= ny * (overlap * 0.5);
+            p2.x += nx * (overlap * 0.5);
+            p2.y += ny * (overlap * 0.5);
+
+            // Pantulan elastis momentum
+            const kx = p1.vx - p2.vx;
+            const ky = p1.vy - p2.vy;
+            const vn = kx * nx + ky * ny;
+            if (vn > 0) {
+              const impulse = 1.2 * vn;
+              p1.vx -= impulse * 0.5 * nx;
+              p1.vy -= impulse * 0.5 * ny;
+              p2.vx += impulse * 0.5 * nx;
+              p2.vy += impulse * 0.5 * ny;
+            }
+          }
+        }
+      }
+    }
+  }
+
+  // 3) Simpan rasio posisi (fx, fy) agar saat resize layar tetap proporsional
+  if (w > 0 && h > 0) {
+    for (const p of pads) {
       p.fx = p.x / w;
       p.fy = p.y / h;
     }
   }
 };
 
-export const drawPad = (ctx: CanvasRenderingContext2D, p: Pad, t: number, scale: number) => {
+export const drawPad = (ctx: CanvasRenderingContext2D, p: Pad, t: number, scale: number, isDark = false) => {
   const r = p.r;
   const rot = p.rot + Math.sin(t * 0.12 + p.ph) * 0.06;
   const a0 = rot + p.gap / 2;
@@ -147,7 +205,7 @@ export const drawPad = (ctx: CanvasRenderingContext2D, p: Pad, t: number, scale:
   ctx.save();
   ctx.translate(5 * scale, 9 * scale);
   path();
-  ctx.fillStyle = "rgba(8,48,52,0.12)";
+  ctx.fillStyle = isDark ? "rgba(0,0,0,0.4)" : "rgba(8,48,52,0.12)";
   ctx.fill();
   ctx.restore();
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useRef, type ReactNode } from "react";
 import { gsap, useGSAP } from "@/lib/gsap";
 import { profile } from "@/content/profile";
 
@@ -11,21 +11,14 @@ interface HeroProps {
 
 export default function Hero({ koi, children }: HeroProps) {
   const root = useRef<HTMLElement>(null);
+  const paperOverlay = useRef<HTMLDivElement>(null);
   const name = useRef<HTMLHeadingElement>(null);
   const role = useRef<HTMLParagraphElement>(null);
-  const [fed, setFed] = useState(false);
-
-  useEffect(() => {
-    const handleFeed = () => setFed(true);
-    window.addEventListener("koi:first-feed", handleFeed, { once: true });
-    return () => window.removeEventListener("koi:first-feed", handleFeed);
-  }, []);
 
   useGSAP(
     () => {
       const mm = gsap.matchMedia();
       mm.add("(prefers-reduced-motion: no-preference)", () => {
-        // Kolam bergulir naik, nama tetap menempel, background perlahan berubah jadi putih.
         gsap
           .timeline({
             defaults: { ease: "none" },
@@ -36,7 +29,7 @@ export default function Hero({ koi, children }: HeroProps) {
               scrub: true,
             },
           })
-          .to(root.current, { backgroundColor: "#f6f9f8", duration: 1 }, 0)
+          .to(paperOverlay.current, { opacity: 1, duration: 1 }, 0)
           .to(name.current, { scale: 0.88, duration: 1 }, 0)
           .fromTo(role.current, { autoAlpha: 0, y: 18 }, { autoAlpha: 1, y: 0, duration: 0.4 }, 0.4);
       });
@@ -47,12 +40,16 @@ export default function Hero({ koi, children }: HeroProps) {
 
   return (
     <section ref={root} className="relative h-[200vh] bg-water">
-      {/* Kolam: hanya setinggi layar pertama, jadi ikut bergulir ke atas. */}
       <div className="absolute inset-x-0 top-0 h-svh overflow-hidden">
         {koi ?? children}
       </div>
 
-      {/* Lapisan nama: sticky + blend difference supaya warna huruf terbalik terhadap yang ada di belakangnya. */}
+      <div
+        ref={paperOverlay}
+        aria-hidden
+        className="pointer-events-none absolute inset-0 bg-paper opacity-0"
+      />
+
       <div className="pointer-events-none sticky top-0 flex h-svh w-full flex-col items-center justify-center px-4 text-center text-white mix-blend-difference">
         <h1
           ref={name}

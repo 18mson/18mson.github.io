@@ -17,6 +17,7 @@ src/
 │   ├── hero/                 # Bagian Hero dengan nama sticky, blend difference, dan scroll background
 │   ├── koi-pond/             # Kolam koi interaktif (React wrapper dan Canvas 2D engine)
 │   │   └── engine/           # Mesin simulasi koi dan air Canvas 2D murni tanpa dependensi luar
+│   ├── projects/             # Showcase karya pilihan dengan horizontal scroll carousel GSAP
 │   └── timeline/             # Bagian timeline perjalanan karir dan kartu interaktif dengan ScrollTrigger
 ├── components/               # Komponen UI dan layout global yang dapat digunakan kembali
 │   ├── layout/               # Komponen layout global seperti penyedia smooth scroll Lenis

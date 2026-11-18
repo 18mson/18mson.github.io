@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
 import { gsap, ScrollTrigger, useGSAP } from "@/lib/gsap";
 import { timeline } from "@/content/timeline";
 import TimelineItem from "./TimelineItem";
@@ -14,13 +14,38 @@ export default function Timeline() {
   const fill = useRef<HTMLDivElement>(null);
   const indicator = useRef<HTMLDivElement>(null);
 
+  useEffect(() => {
+    const onThemeEnd = (e: Event) => {
+      const isDark = (e as CustomEvent).detail?.isDark;
+      if (section.current) {
+        if (isDark) {
+          section.current.style.backgroundColor = "";
+        } else {
+          gsap.to(section.current, {
+            backgroundColor: PAPER,
+            duration: 0.4,
+            overwrite: true,
+          });
+        }
+      }
+    };
+    window.addEventListener("koi:theme-toggle-end", onThemeEnd);
+    return () => window.removeEventListener("koi:theme-toggle-end", onThemeEnd);
+  }, []);
+
   useGSAP(
     () => {
       const mm = gsap.matchMedia();
       mm.add("(prefers-reduced-motion: no-preference)", () => {
         const items = gsap.utils.toArray<HTMLElement>(".tl-item");
-        const tone = (color: string) =>
+        const tone = (color: string) => {
+          const isDark = document.documentElement.classList.contains("dark");
+          if (isDark) {
+            if (section.current) section.current.style.backgroundColor = "";
+            return;
+          }
           gsap.to(section.current, { backgroundColor: color, duration: 0.9, ease: "power2.out", overwrite: true });
+        };
 
         items.forEach((item, i) => {
           const card = item.querySelector<HTMLElement>(".tl-card");
@@ -44,7 +69,14 @@ export default function Timeline() {
             onToggle: (self) => item.classList.toggle("is-active", self.isActive),
             onEnter: () => tone(timeline[i].tone),
             onEnterBack: () => tone(timeline[i].tone),
-            onLeaveBack: () => tone(i === 0 ? PAPER : timeline[i - 1].tone),
+            onLeaveBack: () => {
+              const isDark = document.documentElement.classList.contains("dark");
+              if (isDark) {
+                if (section.current) section.current.style.backgroundColor = "";
+              } else {
+                tone(i === 0 ? PAPER : timeline[i - 1].tone);
+              }
+            },
           });
           ScrollTrigger.create({
             trigger: item,
@@ -80,7 +112,6 @@ export default function Timeline() {
           trackEl.style.height = `${totalLineHeight}px`;
           trackEl.style.opacity = "1";
 
-          fillEl.style.top = `${startY}px`;
           if (indicatorEl) indicatorEl.style.opacity = "1";
 
           updateProgress();
@@ -96,9 +127,11 @@ export default function Timeline() {
           const dotY = Math.min(endY, Math.max(startY, vhCenterInWrap));
           indicatorEl.style.top = `${dotY}px`;
 
-          const filledHeight = Math.max(0, dotY - startY);
-          fillEl.style.height = `${filledHeight}px`;
-          fillEl.style.opacity = filledHeight > 0 ? "1" : "0";
+          // Filosofi waktu mundur: garis berwarna membentang dari titik aktif ke bawah (ke masa lalu), sedangkan yang di atas polos
+          fillEl.style.top = `${dotY}px`;
+          const coloredHeight = Math.max(0, endY - dotY);
+          fillEl.style.height = `${coloredHeight}px`;
+          fillEl.style.opacity = coloredHeight > 0 ? "1" : "0";
         };
 
         updateLineBounds();

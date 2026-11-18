@@ -31,6 +31,7 @@ export interface Pad {
   gap: number; // lebar takik daun
   tone: number;
   flower: boolean;
+  freezeTimer?: number;
 }
 
 export interface Variety {

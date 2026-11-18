@@ -258,37 +258,74 @@ export const updateFish = ({
   updatePatches(f, hw);
 };
 
-export const drawTail = (ctx: CanvasRenderingContext2D, f: Fish, energy: number) => {
+export const drawTail = (ctx: CanvasRenderingContext2D, f: Fish, energy: number, hw: number) => {
+  const prev = f.draw[N - 2];
   const b = f.draw[N - 1];
-  const dir = f.ang[N - 1] + Math.PI + Math.sin(f.phase - N * 0.62 - 0.4) * 0.45 * (0.4 + energy * 0.6);
-  const lt = f.len * 0.34;
-  const spread = 0.5;
+
+  // Arah ekor alami mengikuti tangen ruas tulang belakang terakhir
+  const spineAngle = Math.atan2(b.y - prev.y, b.x - prev.x);
+  // Ayunan halus elastis (tidak patah/kaku)
+  const sway = Math.sin(f.phase - (N - 1) * 0.62) * 0.16 * (0.35 + energy * 0.65);
+  const tailDir = spineAngle + sway;
+
+  const bw = WIDTH[N - 1] * hw;
+  const nx = f.nx[N - 1];
+  const ny = f.ny[N - 1];
+
+  // Pangkal ekor menyatu mulus dari tepi kiri dan kanan tubuh ikan
+  const baseL: Vec = { x: b.x + nx * bw, y: b.y + ny * bw };
+  const baseR: Vec = { x: b.x - nx * bw, y: b.y - ny * bw };
+
+  const lt = f.len * 0.38;
+  const spread = 0.52;
   const at = (a: number, d: number): Vec => ({ x: b.x + Math.cos(a) * d, y: b.y + Math.sin(a) * d });
 
-  const tipL = at(dir - spread, lt);
-  const tipR = at(dir + spread, lt);
-  const notch = at(dir, lt * 0.55);
-  const cL = at(dir - spread * 0.3, lt * 0.75);
-  const cR = at(dir + spread * 0.3, lt * 0.75);
-  const concave = (p: Vec): Vec => {
-    const mx = (p.x + notch.x) / 2;
-    const my = (p.y + notch.y) / 2;
-    return { x: mx + (b.x - mx) * 0.25, y: my + (b.y - my) * 0.25 };
-  };
-  const nL = concave(tipL);
-  const nR = concave(tipR);
+  const tipL = at(tailDir - spread, lt);
+  const tipR = at(tailDir + spread, lt);
+  const notch = at(tailDir, lt * 0.62);
+
+  // Titik kontrol luar agar sirip mengembang anggun seperti sutra (silk fin)
+  const cL = at(tailDir - spread * 0.45, lt * 0.6);
+  const cR = at(tailDir + spread * 0.45, lt * 0.6);
+
+  // Titik kontrol lekukan dalam cuping ekor
+  const inL = at(tailDir - spread * 0.18, lt * 0.8);
+  const inR = at(tailDir + spread * 0.18, lt * 0.8);
 
   ctx.beginPath();
-  ctx.moveTo(b.x, b.y);
-  ctx.quadraticCurveTo(cL.x, cL.y, tipL.x, tipL.y);
-  ctx.quadraticCurveTo(nL.x, nL.y, notch.x, notch.y);
-  ctx.quadraticCurveTo(nR.x, nR.y, tipR.x, tipR.y);
-  ctx.quadraticCurveTo(cR.x, cR.y, b.x, b.y);
+  ctx.moveTo(baseL.x, baseL.y);
+  // Lengkung luar kiri dari pangkal ke ujung cuping kiri
+  ctx.bezierCurveTo(baseL.x + nx * (bw * 1.5), baseL.y + ny * (bw * 1.5), cL.x, cL.y, tipL.x, tipL.y);
+  // Lengkung dalam kiri menuju celah tengah
+  ctx.quadraticCurveTo(inL.x, inL.y, notch.x, notch.y);
+  // Lengkung dalam kanan menuju ujung cuping kanan
+  ctx.quadraticCurveTo(inR.x, inR.y, tipR.x, tipR.y);
+  // Lengkung luar kanan kembali ke pangkal kanan
+  ctx.bezierCurveTo(cR.x, cR.y, baseR.x - nx * (bw * 1.5), baseR.y - ny * (bw * 1.5), baseR.x, baseR.y);
   ctx.closePath();
+
+  // Warna sirip transparan
   ctx.fillStyle = f.variety.fin;
   ctx.fill();
-  ctx.lineWidth = 1;
-  ctx.strokeStyle = "rgba(15,42,44,0.10)";
+
+  // Tekstur sinar sirip halus (fin rays) yang membuat sirip tampak nyata & mengalir
+  ctx.save();
+  ctx.clip();
+  ctx.strokeStyle = "rgba(255, 255, 255, 0.42)";
+  ctx.lineWidth = 0.75;
+  for (let r = -2; r <= 2; r++) {
+    const rayAngle = tailDir + (r / 2) * (spread * 0.72);
+    const rayDist = lt * (r === 0 ? 0.62 : 0.9);
+    ctx.beginPath();
+    ctx.moveTo(b.x, b.y);
+    ctx.lineTo(b.x + Math.cos(rayAngle) * rayDist, b.y + Math.sin(rayAngle) * rayDist);
+    ctx.stroke();
+  }
+  ctx.restore();
+
+  // Garis tepi halus berkilau (shimmer highlight) yang cantik di light maupun dark mode
+  ctx.strokeStyle = "rgba(255, 255, 255, 0.38)";
+  ctx.lineWidth = 0.9;
   ctx.stroke();
 };
 
@@ -296,7 +333,7 @@ export const drawFish = (ctx: CanvasRenderingContext2D, f: Fish, scale: number, 
   const hw = f.len * 0.095;
   const energy = Math.min(1, f.v / (f.chase * scale * speed));
 
-  drawTail(ctx, f, energy);
+  drawTail(ctx, f, energy, hw);
 
   // Sirip dada
   ctx.fillStyle = f.variety.fin;
@@ -312,6 +349,9 @@ export const drawFish = (ctx: CanvasRenderingContext2D, f: Fish, scale: number, 
     ctx.beginPath();
     ctx.ellipse(bx + Math.cos(fa) * fl * 0.5, by + Math.sin(fa) * fl * 0.5, fl * 0.5, f.len * 0.04, fa, 0, TAU);
     ctx.fill();
+    ctx.strokeStyle = "rgba(255, 255, 255, 0.35)";
+    ctx.lineWidth = 0.8;
+    ctx.stroke();
   }
 
   // Badan

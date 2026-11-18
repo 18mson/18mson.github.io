@@ -65,7 +65,7 @@ export const drawPellets = (ctx: CanvasRenderingContext2D, pellets: Pellet[], sc
   ctx.globalAlpha = 1;
 };
 
-export const drawRipples = (ctx: CanvasRenderingContext2D, ripples: Ripple[]) => {
+export const drawRipples = (ctx: CanvasRenderingContext2D, ripples: Ripple[], isDark = false) => {
   for (const r of ripples) {
     const p = r.age / r.life;
     const e = 1 - Math.pow(1 - p, 3);
@@ -76,11 +76,15 @@ export const drawRipples = (ctx: CanvasRenderingContext2D, ripples: Ripple[]) =>
       if (rr <= 1) continue;
       const ak = a * (1 - k * 0.28);
       ctx.lineWidth = 1.6 - k * 0.3;
-      ctx.strokeStyle = `rgba(12,56,60,${(ak * 0.22).toFixed(3)})`;
+      ctx.strokeStyle = isDark
+        ? `rgba(0,0,0,${(ak * 0.45).toFixed(3)})`
+        : `rgba(12,56,60,${(ak * 0.22).toFixed(3)})`;
       ctx.beginPath();
       ctx.arc(r.x + 1.2, r.y + 1.8, rr, 0, TAU);
       ctx.stroke();
-      ctx.strokeStyle = `rgba(255,255,255,${(ak * 0.95).toFixed(3)})`;
+      ctx.strokeStyle = isDark
+        ? `rgba(160,235,230,${(ak * 0.95).toFixed(3)})`
+        : `rgba(255,255,255,${(ak * 0.95).toFixed(3)})`;
       ctx.beginPath();
       ctx.arc(r.x, r.y, rr, 0, TAU);
       ctx.stroke();
