@@ -10,6 +10,7 @@ const PAPER = "#f6f9f8";
 export default function Timeline() {
   const section = useRef<HTMLElement>(null);
   const list = useRef<HTMLDivElement>(null);
+  const track = useRef<HTMLDivElement>(null);
   const fill = useRef<HTMLDivElement>(null);
 
   useGSAP(
@@ -52,22 +53,72 @@ export default function Timeline() {
           });
         });
 
-        // Garis progres berhenti tepat di titik tengah.
-        const wrap = list.current!;
-        const bar = fill.current!;
-        const setScale = gsap.quickSetter(bar, "scaleY");
-        ScrollTrigger.create({
-          trigger: wrap,
-          start: "top bottom",
-          end: "bottom top",
-          onUpdate: () => {
-            const vh = window.innerHeight;
-            const rect = wrap.getBoundingClientRect();
-            const h = rect.height;
-            const dot = Math.min(vh / 2 + Math.max(0, -rect.top), h - vh / 2);
-            setScale(dot / h);
-          },
-        });
+        // Posisikan garis agar persis dimulai dari titik pertama sampai titik terakhir (tanpa garis di atasnya)
+        const trackEl = track.current;
+        const fillEl = fill.current;
+        const wrap = list.current;
+
+        const updateLinePosition = () => {
+          if (!trackEl || !fillEl || !wrap || items.length === 0) return;
+          const firstNode = items[0].querySelector<HTMLElement>(".tl-node");
+          const lastNode = items[items.length - 1].querySelector<HTMLElement>(".tl-node");
+          if (!firstNode || !lastNode) return;
+
+          const listRect = wrap.getBoundingClientRect();
+          const firstRect = firstNode.getBoundingClientRect();
+          const lastRect = lastNode.getBoundingClientRect();
+
+          const startY = firstRect.top - listRect.top + firstRect.height / 2;
+          const endY = lastRect.top - listRect.top + lastRect.height / 2;
+          const totalLineHeight = Math.max(0, endY - startY);
+
+          trackEl.style.top = `${startY}px`;
+          trackEl.style.height = `${totalLineHeight}px`;
+          trackEl.style.opacity = "1";
+
+          fillEl.style.top = `${startY}px`;
+          fillEl.style.height = `${totalLineHeight}px`;
+          fillEl.style.opacity = "1";
+        };
+
+        updateLinePosition();
+        ScrollTrigger.addEventListener("refresh", updateLinePosition);
+
+        // Garis progres berhenti tepat di titik tengah
+        if (fillEl && wrap) {
+          const setScale = gsap.quickSetter(fillEl, "scaleY");
+          ScrollTrigger.create({
+            trigger: wrap,
+            start: "top bottom",
+            end: "bottom top",
+            onUpdate: () => {
+              if (items.length === 0) return;
+              const firstNode = items[0].querySelector<HTMLElement>(".tl-node");
+              const lastNode = items[items.length - 1].querySelector<HTMLElement>(".tl-node");
+              if (!firstNode || !lastNode) return;
+
+              const vh = window.innerHeight;
+              const firstRect = firstNode.getBoundingClientRect();
+              const lastRect = lastNode.getBoundingClientRect();
+              const firstCenter = firstRect.top + firstRect.height / 2;
+              const lastCenter = lastRect.top + lastRect.height / 2;
+              const totalDistance = lastCenter - firstCenter;
+
+              if (totalDistance <= 0) {
+                setScale(0);
+                return;
+              }
+
+              const dotScreenY = vh / 2;
+              const progress = (dotScreenY - firstCenter) / totalDistance;
+              setScale(Math.min(1, Math.max(0, progress)));
+            },
+          });
+        }
+
+        return () => {
+          ScrollTrigger.removeEventListener("refresh", updateLinePosition);
+        };
       });
       return () => mm.revert();
     },
@@ -80,7 +131,7 @@ export default function Timeline() {
       id="experience"
       className="relative z-10 rounded-t-[2.5rem] bg-paper text-ink"
     >
-      <div className="mx-auto max-w-5xl px-6 pt-28 md:pt-40">
+      <div className="mx-auto max-w-5xl px-6 pt-16 md:pt-24">
         <h2 className="font-display text-4xl font-bold tracking-tight md:text-6xl">Experience</h2>
         <p className="mt-4 max-w-md text-lg text-ink/70">
           Selected work, engineering projects, and academic background.
@@ -93,21 +144,27 @@ export default function Timeline() {
           <div className="absolute top-1/2 left-7 size-4 -translate-x-1/2 -translate-y-1/2 rounded-full bg-koi ring-8 ring-koi/20 md:left-1/2" />
         </div>
 
-        {/* Garis dasar + garis progres */}
-        <div aria-hidden className="absolute inset-y-0 left-7 w-px -translate-x-1/2 bg-ink/15 md:left-1/2" />
+        {/* Garis dasar + garis progres (mulai tepat dari titik pertama sampai titik terakhir) */}
+        <div
+          ref={track}
+          aria-hidden
+          style={{ opacity: 0 }}
+          className="absolute left-7 w-px -translate-x-1/2 bg-ink/15 transition-opacity duration-300 md:left-1/2"
+        />
         <div
           ref={fill}
           aria-hidden
-          className="absolute inset-y-0 left-7 w-px origin-top -translate-x-1/2 scale-y-0 bg-koi md:left-1/2"
+          style={{ opacity: 0 }}
+          className="absolute left-7 w-px origin-top -translate-x-1/2 scale-y-0 bg-koi transition-opacity duration-300 md:left-1/2"
         />
 
-        <div className="h-[38svh]" />
+        <div className="h-8 md:h-12" />
         <ol className="space-y-[18svh] px-6">
           {timeline.map((item, i) => (
             <TimelineItem key={item.id} item={item} index={i} />
           ))}
         </ol>
-        <div className="h-[45svh]" />
+        <div className="h-[40svh]" />
       </div>
     </section>
   );
