@@ -1,36 +1,55 @@
-# portofolio-son
+# Muhamad Son'ani — Portfolio
 
-Portofolio satu halaman: kolam koi interaktif + timeline scroll.
+A high-performance, single-page portfolio engineered with Next.js, TypeScript, Tailwind CSS, GSAP, and a custom HTML5 Canvas 2D simulation engine.
 
-## Jalankan
+## Tech Stack
+
+- **Framework:** Next.js (App Router, Turbopack)
+- **Language:** TypeScript
+- **Styling:** Tailwind CSS v4
+- **Animation & Scroll:** GSAP & ScrollTrigger
+- **Smooth Scrolling:** Lenis
+- **Graphics & Physics:** Custom HTML5 Canvas 2D (Boids flocking algorithm, kinematic spine fish models, 2D damping water ripples)
+
+## Getting Started
+
 ```bash
+# Install dependencies
 npm install
+
+# Start development server
 npm run dev
+
+# Create optimized production build
+npm run build
 ```
 
-## Struktur Folder (`src/`)
+Open [http://localhost:3000](http://localhost:3000) in your browser.
+
+## Directory Structure (`src/`)
 
 ```
 src/
-├── app/                      # Entry point App Router, layout global, dan perakitan fitur halaman utama
-├── features/                 # Fitur mandiri aplikasi yang merangkum UI dan logika spesifik
-│   ├── hero/                 # Bagian Hero dengan nama sticky, blend difference, dan scroll background
-│   ├── koi-pond/             # Kolam koi interaktif (React wrapper dan Canvas 2D engine)
-│   │   └── engine/           # Mesin simulasi koi dan air Canvas 2D murni tanpa dependensi luar
-│   ├── projects/             # Showcase karya pilihan dengan horizontal scroll carousel GSAP
-│   └── timeline/             # Bagian timeline perjalanan karir dan kartu interaktif dengan ScrollTrigger
-├── components/               # Komponen UI dan layout global yang dapat digunakan kembali
-│   ├── layout/               # Komponen layout global seperti penyedia smooth scroll Lenis
-│   └── ui/                   # Komponen primitif antarmuka pengguna
-├── content/                  # Data konten statis portofolio seperti profil dan data perjalanan
-├── hooks/                    # Custom React hooks bersama di tingkat aplikasi
-├── lib/                      # Inisialisasi library pihak ketiga seperti konfigurasi plugin GSAP
-└── types/                    # Definisi tipe TypeScript bersama di tingkat aplikasi
+├── app/                      # Next.js App Router entry point, layout, and page composition
+├── features/                 # Self-contained domain modules encapsulating UI and business logic
+│   ├── contact/              # Craft & Technical Arsenal bento grid, contact card, and footer outro
+│   ├── hero/                 # Hero section with sticky typography, color transitions, and scroll overlay
+│   ├── koi-pond/             # Interactive koi pond (React canvas wrapper & simulation engine)
+│   │   └── engine/           # Pure TypeScript Canvas 2D simulation (fish kinematics, water physics, lotus pads)
+│   ├── projects/             # Selected works showcase with GSAP horizontal pinned reel and mobile carousel
+│   └── timeline/             # Reverse-chronological career journey with ScrollTrigger progress tracking
+├── components/               # Reusable UI primitives and global layout components
+│   ├── layout/               # Global wrappers (e.g., Lenis smooth scroll provider)
+│   └── ui/                   # Shared UI primitives
+├── content/                  # Static domain data (career timeline, project showcases, bio)
+├── hooks/                    # Shared application-level React hooks
+├── lib/                      # Third-party integrations and plugin registrations (e.g., GSAP)
+└── types/                    # Shared TypeScript interfaces and type definitions
 ```
 
-## Aturan Dependensi
+## Architectural Guidelines
 
-1. **Arah dependensi satu arah**: `app` -> `features` -> (`components`, `lib`, `content`).
-2. **Isolasi Fitur**: Feature **TIDAK** boleh mengimpor feature lain. Perakitan antar-fitur hanya dilakukan di level `app`.
-3. **Isolasi Engine**: `src/features/koi-pond/engine/` adalah modul TypeScript murni dan **TIDAK** boleh mengimpor apa pun dari luar `engine/`.
-4. **Batas "use client"**: Hanya komponen interaktif (`Hero`, `KoiCanvas`, `Timeline`, `SmoothScroll`) yang menggunakan `"use client"`. Komponen server (`app/page.tsx`, `app/layout.tsx`) dan seluruh modul `engine/` tetap murni server/utilitas tanpa `"use client"`.
+1. **Unidirectional Dependency Flow:** `app` → `features` → (`components`, `lib`, `content`).
+2. **Feature Isolation:** Features must never import from other features. Cross-feature orchestration is handled strictly at the `app` level.
+3. **Engine Purity:** `src/features/koi-pond/engine/` consists of pure TypeScript and mathematical algorithms with zero external UI or framework dependencies.
+4. **Client Component Boundaries:** `"use client"` directives are restricted to interactive leaves (`Hero`, `KoiCanvas`, `Timeline`, `Projects`, `SmoothScroll`). Layouts, server pages, and utility modules remain purely server-side or environment-agnostic.

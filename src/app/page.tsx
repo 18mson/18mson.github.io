@@ -1,4 +1,5 @@
 import SmoothScroll from "@/components/layout/SmoothScroll";
+import { Contact } from "@/features/contact";
 import { Hero } from "@/features/hero";
 import { KoiCanvas } from "@/features/koi-pond";
 import { Projects } from "@/features/projects";
@@ -11,6 +12,7 @@ export default function Home() {
         <Hero koi={<KoiCanvas />} />
         <Timeline />
         <Projects />
+        <Contact />
       </main>
     </SmoothScroll>
   );

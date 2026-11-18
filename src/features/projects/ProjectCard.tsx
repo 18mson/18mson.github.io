@@ -6,7 +6,7 @@ interface ProjectCardProps {
 
 export default function ProjectCard({ project }: ProjectCardProps) {
   return (
-    <article className="group relative flex h-full w-[85vw] max-w-[440px] shrink-0 flex-col justify-between rounded-3xl border border-ink/10 bg-[var(--color-card)] p-7 transition-all duration-300 hover:border-koi/40 md:w-[440px] md:p-8">
+    <article className="group relative flex h-full w-[80vw] max-w-[360px] shrink-0 touch-pan-y flex-col justify-between rounded-3xl border border-ink/10 bg-[var(--color-card)] p-6 transition-all duration-300 hover:border-koi/40 md:w-[440px] md:max-w-[440px] md:p-8">
       <div>
         {/* Header: nomor dan kategori */}
         <div className="flex items-center justify-between gap-4">
