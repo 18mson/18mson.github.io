@@ -1,0 +1,46 @@
+@import "tailwindcss";
+@import "lenis/dist/lenis.css";
+
+@theme {
+  --font-display: "Bricolage Grotesque Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-name: "Shippori Mincho", "Hiragino Mincho ProN", "Yu Mincho", serif;
+  --font-body: "Instrument Sans Variable", ui-sans-serif, system-ui, sans-serif;
+  --color-ink: #0f2a2c;
+  --color-koi: #ee5a24;
+  --color-water: #d2e8e4;
+  --color-paper: #f6f9f8;
+}
+
+html {
+  background: var(--color-paper);
+}
+
+body {
+  background: var(--color-paper);
+  color: var(--color-ink);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+  overflow-x: clip;
+}
+
+/* ---- Timeline states (toggled by ScrollTrigger) ---- */
+.tl-node {
+  background: var(--color-paper);
+  border: 2px solid color-mix(in oklab, var(--color-ink) 30%, transparent);
+  transition: background-color 0.4s, border-color 0.4s, scale 0.4s;
+}
+.tl-item.is-passed .tl-node {
+  background: var(--color-ink);
+  border-color: var(--color-ink);
+}
+.tl-item.is-active .tl-node {
+  background: var(--color-koi);
+  border-color: var(--color-koi);
+  scale: 1.5;
+}
+.tl-card {
+  transition: border-color 0.4s;
+}
+.tl-item.is-active .tl-card {
+  border-color: color-mix(in oklab, var(--color-koi) 60%, transparent);
+}
