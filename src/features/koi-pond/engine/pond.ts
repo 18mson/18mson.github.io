@@ -1,5 +1,5 @@
 import { MAX_PELLETS, N, TAU } from "./constants";
-import { drawFish, spawnFish, trace, updateFish } from "./fish";
+import { drawFish, drawFishShadow, spawnFish, trace, updateFish } from "./fish";
 import { clamp, rand } from "./math";
 import { drawLotus, drawPad, layoutPads, updatePads } from "./pads";
 import type { Fish, KoiOptions, Pad, Pellet, Ripple } from "./types";
@@ -361,8 +361,7 @@ export class KoiPond {
       c.translate(6 * this.scale, 11 * this.scale);
       c.fillStyle = tr.fromDark ? "rgba(0,0,0,0.45)" : "rgba(8,48,52,0.10)";
       for (const f of this.fish) {
-        trace(c, f.outline);
-        c.fill();
+        drawFishShadow(c, f, this.scale, this.speed);
       }
       c.restore();
 
@@ -374,8 +373,7 @@ export class KoiPond {
       c.translate(6 * this.scale, 11 * this.scale);
       c.fillStyle = tr.targetDark ? "rgba(0,0,0,0.45)" : "rgba(8,48,52,0.10)";
       for (const f of this.fish) {
-        trace(c, f.outline);
-        c.fill();
+        drawFishShadow(c, f, this.scale, this.speed);
       }
       c.restore();
     } else {
@@ -383,8 +381,7 @@ export class KoiPond {
       c.translate(6 * this.scale, 11 * this.scale);
       c.fillStyle = this.isDark ? "rgba(0,0,0,0.45)" : "rgba(8,48,52,0.10)";
       for (const f of this.fish) {
-        trace(c, f.outline);
-        c.fill();
+        drawFishShadow(c, f, this.scale, this.speed);
       }
       c.restore();
     }

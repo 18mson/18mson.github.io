@@ -679,3 +679,58 @@ export const drawFish = (ctx: CanvasRenderingContext2D, f: Fish, scale: number, 
     }
   }
 };
+
+/** Menggambar bayangan siluet ikan lengkap dengan ekor dan sirip di dasar kolam */
+export const drawFishShadow = (
+  ctx: CanvasRenderingContext2D,
+  f: Fish,
+  scale: number,
+  speed: number
+) => {
+  const hw = f.len * 0.135;
+  const energy = Math.min(1, f.v / (f.chase * scale * speed));
+
+  // 1. Siluet badan dan ekor terpadu
+  traceFishWithTail(ctx, f, energy, hw);
+  ctx.fill();
+
+  // 2. Siluet sirip dada (pectoral fins) ikut membayangi dasar kolam
+  const i = 2;
+  const d = f.draw[i];
+  const a = f.ang[i];
+  const w = WIDTH[i] * hw;
+  const nextD = f.draw[i + 1];
+  const nextW = WIDTH[i + 1] * hw;
+  const fl = f.len * 0.26;
+  const fw = f.len * 0.10;
+  const tailDir = a + Math.PI;
+
+  for (const side of [-1, 1]) {
+    const bx = d.x + f.nx[i] * side * (w * 0.90);
+    const by = d.y + f.ny[i] * side * (w * 0.90);
+    const bx2 = nextD.x + f.nx[i + 1] * side * (nextW * 0.90);
+    const by2 = nextD.y + f.ny[i + 1] * side * (nextW * 0.90);
+
+    const sway = Math.sin(f.phase * 1.3 + side * 0.6) * 0.08 * (0.4 + energy * 0.6);
+    const sweep = 0.40 + sway;
+    const finAngle = tailDir - side * sweep;
+
+    const tipX = bx + Math.cos(finAngle) * fl;
+    const tipY = by + Math.sin(finAngle) * fl;
+
+    const leadCtrlAngle = finAngle - side * 0.16;
+    const leadCtrlX = bx + Math.cos(leadCtrlAngle) * (fl * 0.55);
+    const leadCtrlY = by + Math.sin(leadCtrlAngle) * (fl * 0.55);
+
+    const trailCtrlAngle = finAngle + side * 0.22;
+    const trailCtrlX = bx2 + Math.cos(trailCtrlAngle) * (fw * 1.4);
+    const trailCtrlY = by2 + Math.sin(trailCtrlAngle) * (fw * 1.4);
+
+    ctx.beginPath();
+    ctx.moveTo(bx, by);
+    ctx.quadraticCurveTo(leadCtrlX, leadCtrlY, tipX, tipY);
+    ctx.quadraticCurveTo(trailCtrlX, trailCtrlY, bx2, by2);
+    ctx.closePath();
+    ctx.fill();
+  }
+};
