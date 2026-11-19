@@ -39,6 +39,8 @@ export const tools: Tool[] = [
   { id: "nodejs", name: "Node.js", tier: "exploring" },
   { id: "colyseus", name: "Colyseus", tier: "exploring" },
   { id: "java", name: "Java", tier: "exploring" },
+  { id: "kotlin", name: "Kotlin", tier: "exploring" },
+  { id: "swift", name: "Swift", tier: "exploring" },
   { id: "android-studio", name: "Android Studio", tier: "exploring" },
 ];
 

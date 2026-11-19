@@ -6,7 +6,7 @@ export interface SocialLink {
 }
 
 export const contactInfo = {
-  headline: "Let's build thoughtful engineering together.",
+  headline: "Let's talk about what you're building.",
   subtitle:
     "Open for senior frontend roles, technical advisory, and high-impact web architectures. Reach out for collaboration or engineering opportunities.",
   email: "18mson@gmail.com",

@@ -21,6 +21,8 @@ import {
   siNodedotjs,
   siOpenjdk,
   siAndroidstudio,
+  siKotlin,
+  siSwift,
 } from "simple-icons";
 
 export interface ToolIconData {
@@ -58,5 +60,7 @@ export const toolIcons: Record<string, ToolIconData | undefined> = {
   nodejs: { path: siNodedotjs.path, hex: `#${siNodedotjs.hex}` },
   colyseus: undefined, // Singkatan "COL"
   java: { path: siOpenjdk.path, hex: `#${siOpenjdk.hex}` },
+  kotlin: { path: siKotlin.path, hex: `#${siKotlin.hex}` },
+  swift: { path: siSwift.path, hex: `#${siSwift.hex}` },
   "android-studio": { path: siAndroidstudio.path, hex: `#${siAndroidstudio.hex}` },
 };
