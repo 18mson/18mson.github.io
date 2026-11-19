@@ -4,6 +4,7 @@ import { Hero } from "@/features/hero";
 import { KoiCanvas } from "@/features/koi-pond";
 import { Projects } from "@/features/projects";
 import { Timeline } from "@/features/timeline";
+import { Tools } from "@/features/tools";
 
 export default function Home() {
   return (
@@ -12,6 +13,7 @@ export default function Home() {
         <Hero koi={<KoiCanvas />} />
         <Timeline />
         <Projects />
+        <Tools />
         <Contact />
       </main>
     </SmoothScroll>

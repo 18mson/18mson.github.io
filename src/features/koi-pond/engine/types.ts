@@ -38,6 +38,7 @@ export interface Variety {
   base: string;
   fin: string;
   patches: () => PatchDef[];
+  weight?: number;
 }
 
 export interface Fish {

@@ -1,159 +1,337 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { contactInfo } from "@/content/contact";
+import { gsap } from "@/lib/gsap";
 
 export default function ContactCard() {
-  const [copied, setCopied] = useState(false);
+  const [timeStr, setTimeStr] = useState("");
+  const [isStamped, setIsStamped] = useState(false);
 
+  const stampRef = useRef<HTMLDivElement>(null);
+  const rippleRef = useRef<HTMLSpanElement>(null);
+  const fillRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Live Jakarta local time (Asia/Jakarta, UTC+7)
+  useEffect(() => {
+    const updateTime = () => {
+      const now = new Date();
+      const formatted = new Intl.DateTimeFormat("en-US", {
+        timeZone: "Asia/Jakarta",
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: false,
+      }).format(now);
+      setTimeStr(formatted);
+    };
+
+    updateTime();
+    const timer = setInterval(updateTime, 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  // Animasi ripple air saat hover pada baris daftar
+  const handlePointerEnter = (e: React.PointerEvent<HTMLElement>, idx: number) => {
+    const fill = fillRefs.current[idx];
+    if (!fill) return;
+
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    const radius = Math.ceil(
+      Math.hypot(Math.max(x, rect.width - x), Math.max(y, rect.height - y))
+    );
+
+    const isReduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (isReduced) {
+      gsap.set(fill, { clipPath: `circle(${radius}px at ${x}px ${y}px)` });
+    } else {
+      gsap.fromTo(
+        fill,
+        { clipPath: `circle(0px at ${x}px ${y}px)` },
+        {
+          clipPath: `circle(${radius}px at ${x}px ${y}px)`,
+          duration: 0.5,
+          ease: "power2.out",
+          overwrite: true,
+        }
+      );
+    }
+  };
+
+  const handlePointerLeave = (e: React.PointerEvent<HTMLElement>, idx: number) => {
+    const fill = fillRefs.current[idx];
+    if (!fill) return;
+
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+
+    const isReduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (isReduced) {
+      gsap.set(fill, { clipPath: "circle(0px at 0 0)" });
+    } else {
+      gsap.to(fill, {
+        clipPath: `circle(0px at ${x}px ${y}px)`,
+        duration: 0.35,
+        ease: "power2.in",
+        overwrite: true,
+      });
+    }
+  };
+
+  // Klik email untuk menyalin dan menghantamkan stempel Hanko
   const handleCopyEmail = async () => {
     try {
       await navigator.clipboard.writeText(contactInfo.email);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2500);
     } catch {
-      // Fallback: buka mailto jika clipboard API tidak diizinkan browser
       window.location.href = `mailto:${contactInfo.email}`;
+      return;
+    }
+
+    setIsStamped(true);
+
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+    }
+
+    const stampEl = stampRef.current;
+    const rippleEl = rippleRef.current;
+
+    if (stampEl) {
+      const isReduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+      if (isReduced) {
+        gsap.set(stampEl, { opacity: 1, scale: 1, y: 0, rotate: -4 });
+      } else {
+        // Animasi hantaman stempel: turun cepat, memantul mikro, jejak tinta menyebar
+        const tl = gsap.timeline();
+        tl.fromTo(
+          stampEl,
+          { scale: 2.2, y: -38, opacity: 0, rotate: -16 },
+          {
+            scale: 1,
+            y: 0,
+            opacity: 1,
+            rotate: -4,
+            duration: 0.18,
+            ease: "power3.in",
+          }
+        )
+          .to(stampEl, {
+            y: -5,
+            scale: 1.04,
+            rotate: -2,
+            duration: 0.08,
+            ease: "power1.out",
+          })
+          .to(stampEl, {
+            y: 0,
+            scale: 1,
+            rotate: -4,
+            duration: 0.14,
+            ease: "bounce.out",
+          });
+
+        // Ring ripple tinta merah kecil di sekeliling stempel
+        if (rippleEl) {
+          gsap.fromTo(
+            rippleEl,
+            { scale: 0.3, opacity: 0.9 },
+            {
+              scale: 2.2,
+              opacity: 0,
+              duration: 0.45,
+              ease: "power2.out",
+            }
+          );
+        }
+      }
+
+      // Stempel bertahan ~3 detik sebelum memudar perlahan
+      timeoutRef.current = setTimeout(() => {
+        gsap.to(stampEl, {
+          opacity: 0,
+          duration: 0.5,
+          onComplete: () => setIsStamped(false),
+        });
+      }, 3000);
     }
   };
 
   return (
-    <div className="relative mt-20 overflow-hidden rounded-[2.5rem] border border-ink/10 bg-[var(--color-card)] p-8 md:p-14">
-      {/* Decorative subtle ambient gradient accent */}
-      <div
-        aria-hidden
-        className="pointer-events-none absolute -right-24 -top-24 size-96 rounded-full bg-koi/10 blur-3xl"
-      />
-
-      <div className="relative z-10 max-w-3xl">
-        {/* Availability Badge */}
-        <div className="inline-flex items-center gap-2.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-4 py-1.5 text-xs font-semibold tracking-wide text-emerald-700 dark:text-emerald-400">
-          <span className="relative flex size-2">
-            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
-            <span className="relative inline-flex size-2 rounded-full bg-emerald-500" />
-          </span>
-          {contactInfo.availability}
-        </div>
-
-        {/* Heading & Subtitle */}
-        <h2 className="mt-6 font-display text-3xl font-bold tracking-tight text-ink md:text-5xl lg:text-6xl">
-          {contactInfo.headline}
-        </h2>
-        <p className="mt-4 max-w-2xl text-base leading-relaxed text-ink/75 md:text-lg">
-          {contactInfo.subtitle}
-        </p>
-
-        {/* Action Controls */}
-        <div className="mt-10 flex flex-wrap items-center gap-4">
-          {/* 1-Click Copy Email Button */}
-          <button
-            type="button"
-            onClick={handleCopyEmail}
-            className="group inline-flex items-center gap-3 rounded-full bg-ink px-6 py-3.5 text-sm font-semibold text-paper shadow-md transition-all duration-300 hover:bg-koi hover:shadow-lg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-koi active:scale-95"
-            aria-label="Copy email address to clipboard"
-          >
-            {copied ? (
-              <>
-                <svg
-                  className="size-4 text-emerald-400"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  strokeWidth="2.5"
-                  stroke="currentColor"
-                  aria-hidden
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" />
-                </svg>
-                <span>Copied to Clipboard!</span>
-              </>
-            ) : (
-              <>
-                <svg
-                  className="size-4 text-paper/70 transition-transform group-hover:scale-110"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  strokeWidth="2"
-                  stroke="currentColor"
-                  aria-hidden
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M15.666 3.888A2.25 2.25 0 0 0 13.5 2.25h-3c-1.03 0-1.9.693-2.166 1.638m7.332 0c.055.194.084.4.084.612v0a.75.75 0 0 1-.75.75H9a.75.75 0 0 1-.75-.75v0c0-.212.03-.418.084-.612m7.332 0c.646.049 1.288.11 1.927.184 1.1.128 1.907 1.077 1.907 2.185V19.5a2.25 2.25 0 0 1-2.25 2.25H6.75A2.25 2.25 0 0 1 4.5 19.5V6.257c0-1.108.806-2.057 1.907-2.185a48.208 48.208 0 0 1 1.927-.184"
-                  />
-                </svg>
-                <span>{contactInfo.email}</span>
-                <span className="rounded-full bg-paper/15 px-2 py-0.5 text-[11px] font-normal text-paper/80">
-                  Copy
-                </span>
-              </>
-            )}
-          </button>
-
-          {/* Direct Send Mail Link */}
-          <a
-            href={`mailto:${contactInfo.email}`}
-            className="inline-flex items-center gap-2 rounded-full border border-ink/15 bg-ink/5 px-5 py-3.5 text-sm font-semibold text-ink transition-colors hover:border-ink/30 hover:bg-ink/10 dark:bg-white/5 dark:hover:bg-white/10"
-          >
-            <span>Send Email</span>
-            <svg
-              className="size-3.5 opacity-70"
-              fill="none"
-              viewBox="0 0 24 24"
-              strokeWidth="2"
-              stroke="currentColor"
-              aria-hidden
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 19.5 15-15m0 0H8.25m11.25 0v11.25" />
-            </svg>
-          </a>
-
-          {/* Social Profiles */}
-          <div className="flex items-center gap-2">
-            {contactInfo.socials.map((social) => (
-              <a
-                key={social.label}
-                href={social.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 rounded-full border border-ink/15 bg-ink/5 px-4 py-3 text-xs font-semibold text-ink transition-colors hover:border-koi/40 hover:text-koi dark:bg-white/5"
-              >
-                <span>{social.label}</span>
-                <svg
-                  className="size-3 opacity-60"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  strokeWidth="2"
-                  stroke="currentColor"
-                  aria-hidden
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 19.5 15-15m0 0H8.25m11.25 0v11.25" />
-                </svg>
-              </a>
-            ))}
-          </div>
-        </div>
-
-        {/* Location & Timezone info */}
-        <div className="mt-12 flex items-center gap-2 text-xs text-ink/60">
-          <svg
-            className="size-3.5 opacity-70"
-            fill="none"
-            viewBox="0 0 24 24"
-            strokeWidth="2"
-            stroke="currentColor"
-            aria-hidden
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" d="M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1 1 15 0Z"
-            />
-          </svg>
-          <span>Based in {contactInfo.location}</span>
-        </div>
+    <div className="relative mt-20 pt-8 pb-12 w-full">
+      {/* 1. Status bar with live Jakarta local time */}
+      <div className="flex items-center gap-2.5 text-xs md:text-sm text-ink/75 font-medium tracking-wide">
+        <span className="size-2 rounded-full bg-koi shrink-0" aria-hidden="true" />
+        <span>
+          Jakarta{timeStr ? `, local time ${timeStr} WIB` : ""} · {contactInfo.availability}
+        </span>
       </div>
+
+      {/* 2. Headline besar dengan font Shippori Mincho */}
+      <h2 className="mt-8 font-name font-extrabold text-[clamp(2.5rem,7vw,5.5rem)] leading-[1.08] tracking-tight text-ink">
+        {contactInfo.headline}
+      </h2>
+      <p className="mt-4 max-w-2xl text-base md:text-lg text-ink/75 leading-relaxed font-body">
+        {contactInfo.subtitle}
+      </p>
+
+      {/* 3. Daftar interaktif bergaya Projects dengan ripple air saat di-hover */}
+      <ul className="mt-14 w-full">
+        {/* Baris 1: Email (Tipografi Raksasa + Stempel Hanko) */}
+        <li
+          onPointerEnter={(e) => handlePointerEnter(e, 0)}
+          onPointerLeave={(e) => handlePointerLeave(e, 0)}
+          className="relative border-t border-ink/15"
+        >
+          {/* Lapisan ripple air */}
+          <div
+            ref={(el) => {
+              fillRefs.current[0] = el;
+            }}
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-0 bg-water transition-colors duration-500"
+            style={{ clipPath: "circle(0px at 0 0)" }}
+          />
+
+          <div className="relative z-10 py-8 px-2 md:py-10 md:px-4">
+            <button
+              type="button"
+              onClick={handleCopyEmail}
+              className="group flex w-full flex-col gap-4 text-left focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-koi md:flex-row md:items-center md:justify-between"
+              aria-label={`Copy email: ${contactInfo.email}`}
+            >
+              <div>
+                <span className="text-xs font-semibold uppercase tracking-wider text-ink/50">
+                  Email / Direct Inquiry
+                </span>
+                {/* Alamat email tipografi raksasa */}
+                <p className="mt-2 font-name text-[clamp(1.6rem,5vw,3.5rem)] font-extrabold leading-[1.1] tracking-tight text-ink transition-colors group-hover:text-ink">
+                  {contactInfo.email}
+                </p>
+              </div>
+
+              {/* Area Stempel Hanko (muncul saat diklik) */}
+              <div className="relative flex items-center shrink-0 self-start md:self-center">
+                {/* Ring ripple tinta stempel */}
+                <span
+                  ref={rippleRef}
+                  aria-hidden="true"
+                  className="pointer-events-none absolute -inset-2 rounded-lg border-2 border-red-600/70 opacity-0 dark:border-red-500/70"
+                />
+
+                {/* Stempel Hanko Merah */}
+                <div
+                  ref={stampRef}
+                  style={{ opacity: isStamped ? 1 : 0 }}
+                  className="relative inline-flex items-center justify-center rounded-md border-2 border-red-600 bg-red-600/10 p-1.5 shadow-sm select-none dark:border-red-500 dark:bg-red-500/15"
+                >
+                  <div className="flex items-center gap-1.5 border border-red-600/60 px-2.5 py-1 dark:border-red-500/60">
+                    <span className="font-name text-sm font-black leading-none text-red-600 dark:text-red-500 md:text-base">
+                      済
+                    </span>
+                    <span className="font-mono text-[10px] font-bold tracking-widest text-red-600 dark:text-red-500 uppercase md:text-xs">
+                      COPIED
+                    </span>
+                  </div>
+                </div>
+
+                {!isStamped && (
+                  <span className="text-xs font-medium text-ink/40 transition-colors group-hover:text-ink/70">
+                    Click to copy ↵
+                  </span>
+                )}
+              </div>
+            </button>
+          </div>
+        </li>
+
+        {/* Baris 2: LinkedIn */}
+        <li
+          onPointerEnter={(e) => handlePointerEnter(e, 1)}
+          onPointerLeave={(e) => handlePointerLeave(e, 1)}
+          className="relative border-t border-ink/15"
+        >
+          {/* Lapisan ripple air */}
+          <div
+            ref={(el) => {
+              fillRefs.current[1] = el;
+            }}
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-0 bg-water transition-colors duration-500"
+            style={{ clipPath: "circle(0px at 0 0)" }}
+          />
+
+          <div className="relative z-10 py-7 px-2 md:py-8 md:px-4">
+            <a
+              href="https://linkedin.com/in/muhamad-son-ani"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="group flex w-full items-center justify-between text-left focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-koi"
+            >
+              <div>
+                <span className="text-xs font-semibold uppercase tracking-wider text-ink/50">
+                  Network
+                </span>
+                <p className="mt-1 font-name text-[clamp(1.75rem,5.5vw,3.5rem)] font-extrabold leading-[1.1] tracking-tight text-ink transition-colors">
+                  LinkedIn
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2 text-xs font-medium text-ink/60 transition-transform duration-300 group-hover:translate-x-1 group-hover:text-ink md:text-sm">
+                <span className="hidden sm:inline">linkedin.com/in/muhamad-son-ani</span>
+                <span className="text-lg md:text-xl" aria-hidden="true">
+                  ↗
+                </span>
+              </div>
+            </a>
+          </div>
+        </li>
+
+        {/* Baris 3: GitHub */}
+        <li
+          onPointerEnter={(e) => handlePointerEnter(e, 2)}
+          onPointerLeave={(e) => handlePointerLeave(e, 2)}
+          className="relative border-t border-b border-ink/15"
+        >
+          {/* Lapisan ripple air */}
+          <div
+            ref={(el) => {
+              fillRefs.current[2] = el;
+            }}
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-0 bg-water transition-colors duration-500"
+            style={{ clipPath: "circle(0px at 0 0)" }}
+          />
+
+          <div className="relative z-10 py-7 px-2 md:py-8 md:px-4">
+            <a
+              href="https://github.com/18mson"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="group flex w-full items-center justify-between text-left focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-koi"
+            >
+              <div>
+                <span className="text-xs font-semibold uppercase tracking-wider text-ink/50">
+                  Code &amp; Repositories
+                </span>
+                <p className="mt-1 font-name text-[clamp(1.75rem,5.5vw,3.5rem)] font-extrabold leading-[1.1] tracking-tight text-ink transition-colors">
+                  GitHub
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2 text-xs font-medium text-ink/60 transition-transform duration-300 group-hover:translate-x-1 group-hover:text-ink md:text-sm">
+                <span className="hidden sm:inline">github.com/18mson</span>
+                <span className="text-lg md:text-xl" aria-hidden="true">
+                  ↗
+                </span>
+              </div>
+            </a>
+          </div>
+        </li>
+      </ul>
     </div>
   );
 }

@@ -13,6 +13,7 @@
 
 :root {
   --color-card: #ffffff;
+  --pr-fill: var(--color-water);
 }
 
 html.dark {
@@ -21,6 +22,8 @@ html.dark {
   --color-water: #071719;
   --color-paper: #091314;
   --color-card: #0f1f21;
+  /* Di mode gelap water ≈ paper, jadi fill baris aktif diturunkan dari ink supaya tetap terlihat. */
+  --pr-fill: color-mix(in oklab, var(--color-ink) 9%, var(--color-paper));
 }
 
 html {
@@ -58,3 +61,13 @@ body {
 .tl-item.is-active .tl-card {
   border-color: color-mix(in oklab, var(--color-koi) 60%, transparent);
 }
+
+/* ---- Project Editorial Panel (accordion on hover devices, static on touch) ---- */
+.pr-panel { display: grid; grid-template-rows: 1fr; }
+.pr-panel > div { overflow: hidden; min-height: 0; }
+@media (hover: hover) and (pointer: fine) {
+  .pr-panel { grid-template-rows: 0fr; transition: grid-template-rows .5s cubic-bezier(.22,1,.36,1); }
+  .pr-row[data-active="true"] .pr-panel { grid-template-rows: 1fr; }
+}
+@media (prefers-reduced-motion: reduce) { .pr-panel { transition: none; } }
+

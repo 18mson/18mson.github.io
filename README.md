@@ -36,8 +36,9 @@ src/
 │   ├── hero/                 # Hero section with sticky typography, color transitions, and scroll overlay
 │   ├── koi-pond/             # Interactive koi pond (React canvas wrapper & simulation engine)
 │   │   └── engine/           # Pure TypeScript Canvas 2D simulation (fish kinematics, water physics, lotus pads)
-│   ├── projects/             # Selected works showcase with GSAP horizontal pinned reel and mobile carousel
-│   └── timeline/             # Reverse-chronological career journey with ScrollTrigger progress tracking
+│   ├── projects/             # Editorial ink-style project showcase with interactive ripple reveal
+│   ├── timeline/             # Reverse-chronological career journey with ScrollTrigger progress tracking
+│   └── tools/                # Interactive Canvas 2D Toolbox arena & plain text skill inventory
 ├── components/               # Reusable UI primitives and global layout components
 │   ├── layout/               # Global wrappers (e.g., Lenis smooth scroll provider)
 │   └── ui/                   # Shared UI primitives

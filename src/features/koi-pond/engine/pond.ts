@@ -86,9 +86,15 @@ export class KoiPond {
     this.canvas.height = Math.round(h * this.dpr);
     this.scale = clamp(w / 1300, 0.55, 1.1);
 
-    const target = w < 640 ? 5 : w < 1024 ? 8 : 11;
+    const target = w < 640 ? 5 : w < 1024 ? 8 : 10;
     while (this.fish.length < target) this.fish.push(spawnFish(this.w, this.h, this.scale));
-    if (this.fish.length > target) this.fish.length = target;
+    while (this.fish.length > target) {
+      let maxIdx = 0;
+      for (let i = 1; i < this.fish.length; i++) {
+        if (this.fish[i].baseLen > this.fish[maxIdx].baseLen) maxIdx = i;
+      }
+      this.fish.splice(maxIdx, 1);
+    }
     this.pads = layoutPads(this.w, this.h, this.scale, this.pads);
     for (const f of this.fish) {
       f.len = f.baseLen * this.scale;

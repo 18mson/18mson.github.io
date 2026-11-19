@@ -4,9 +4,11 @@ export interface ProjectItem {
   title: string;
   category: string;
   client: string;
-  description: string;
+  summary: string;
+  highlights: string[];
+  // TODO: isi dampak nyata (LCP, coverage test, jumlah pengguna)
+  impact?: string;
   tags: string[];
-  metrics?: string;
   accent: string;
 }
 
@@ -17,10 +19,16 @@ export const projects: ProjectItem[] = [
     title: "BRI Universal Biller",
     category: "Financial Technology",
     client: "Bank Rakyat Indonesia",
-    description:
+    summary:
       "Engineered core billing and payment modules for BRI web banking. Built accessible, high-performance UI components with unit test coverage using Vitest and Testing Library.",
+    highlights: [
+      "Core billing and payment modules for BRI web banking",
+      "Accessible and high-performance UI components",
+      "Automated unit test coverage with Vitest and Testing Library",
+    ],
+    // TODO: isi dampak nyata (LCP, coverage test, jumlah pengguna)
+    impact: undefined,
     tags: ["Next.js", "TypeScript", "Tailwind CSS", "Vitest", "Testing Library"],
-    metrics: "Production Banking Suite",
     accent: "#00529C",
   },
   {
@@ -29,10 +37,16 @@ export const projects: ProjectItem[] = [
     title: "Lovit Superapp",
     category: "Healthcare & Telemedicine",
     client: "Telkom Indonesia",
-    description:
+    summary:
       "Shipped modular telemedicine flows and clinic appointment interfaces. Integrated responsive design tokens from Legion UI and ensured cross-device reliability.",
+    highlights: [
+      "Modular telemedicine flows and clinic appointment interfaces",
+      "Design token integration with Legion UI",
+      "Cross-device responsive reliability",
+    ],
+    // TODO: isi dampak nyata (LCP, coverage test, jumlah pengguna)
+    impact: undefined,
     tags: ["React", "Next.js", "TypeScript", "Redux", "Legion UI"],
-    metrics: "Multi-service Superapp",
     accent: "#E53935",
   },
   {
@@ -41,10 +55,16 @@ export const projects: ProjectItem[] = [
     title: "Pijar Sekolah",
     category: "Education Technology",
     client: "Telkom Indonesia",
-    description:
+    summary:
       "Maintained and enhanced an end-to-end learning management system for schools across Indonesia. Built interactive grading matrices, exam modules, and attendance trackers.",
+    highlights: [
+      "End-to-end learning management system for schools",
+      "Interactive grading matrices and examination modules",
+      "Daily student and teacher attendance trackers",
+    ],
+    // TODO: isi dampak nyata (LCP, coverage test, jumlah pengguna)
+    impact: undefined,
     tags: ["Next.js", "TypeScript", "Tailwind CSS", "Jest", "Agile"],
-    metrics: "Nationwide School LMS",
     accent: "#00897B",
   },
   {
@@ -53,10 +73,16 @@ export const projects: ProjectItem[] = [
     title: "Pijar Mahir",
     category: "Course Marketplace & EdTech",
     client: "Telkom Indonesia",
-    description:
+    summary:
       "Architected SSR course catalog flows and digital certification portals. Integrated SWR and Redux for real-time caching, handling high-traffic registration waves.",
+    highlights: [
+      "SSR course catalog flows and digital certification portals",
+      "Real-time state and caching architecture via SWR and Redux",
+      "Engineered for high-traffic registration waves",
+    ],
+    // TODO: isi dampak nyata (LCP, coverage test, jumlah pengguna)
+    impact: undefined,
     tags: ["Next.js", "React", "TypeScript", "SWR", "Redux", "GA4"],
-    metrics: "High-Volume Certification Portal",
     accent: "#FB8C00",
   },
 ];

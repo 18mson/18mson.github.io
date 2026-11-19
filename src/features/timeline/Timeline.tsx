@@ -51,15 +51,23 @@ export default function Timeline() {
           const card = item.querySelector<HTMLElement>(".tl-card");
           const isLast = i === items.length - 1;
 
-          // Kartu muncul dari bawah, lalu menghilang ke atas (kecuali yang terakhir).
-          const tl = gsap.timeline({
-            defaults: { ease: "none" },
-            scrollTrigger: { trigger: item, start: "top 92%", end: "bottom 8%", scrub: true },
-          });
-          tl.fromTo(card, { autoAlpha: 0, y: 90, scale: 0.94 }, { autoAlpha: 1, y: 0, scale: 1, duration: 0.3 });
-          if (!isLast) {
-            tl.to(card, { duration: 0.4 }).to(card, { autoAlpha: 0, y: -90, scale: 0.94, duration: 0.3 });
-          }
+          // Kartu muncul dari bawah dan tetap terlihat agar timeline dapat dibaca utuh
+          gsap.fromTo(
+            card,
+            { autoAlpha: 0, y: 50, scale: 0.96 },
+            {
+              autoAlpha: 1,
+              y: 0,
+              scale: 1,
+              duration: 0.6,
+              ease: "power2.out",
+              scrollTrigger: {
+                trigger: item,
+                start: "top 88%",
+                toggleActions: "play none none reverse",
+              },
+            }
+          );
 
           // Penanda aktif saat bagian tengah layar (posisi titik) melewati item ini.
           ScrollTrigger.create({
@@ -69,6 +77,10 @@ export default function Timeline() {
             onToggle: (self) => item.classList.toggle("is-active", self.isActive),
             onEnter: () => tone(timeline[i].tone),
             onEnterBack: () => tone(timeline[i].tone),
+            // Setelah item terakhir lewat, kembali ke warna paper supaya menyatu dengan section berikutnya.
+            onLeave: () => {
+              if (isLast) tone(PAPER);
+            },
             onLeaveBack: () => {
               const isDark = document.documentElement.classList.contains("dark");
               if (isDark) {
@@ -207,12 +219,12 @@ export default function Timeline() {
         />
 
         <div className="h-8 md:h-12" />
-        <ol className="space-y-[18svh] px-6">
+        <ol className="space-y-16 md:space-y-20 px-6">
           {timeline.map((item, i) => (
             <TimelineItem key={item.id} item={item} index={i} />
           ))}
         </ol>
-        <div className="h-[40svh]" />
+        <div className="h-16 md:h-24" />
       </div>
     </section>
   );
