@@ -243,9 +243,18 @@ export const drawPad = (ctx: CanvasRenderingContext2D, p: Pad, t: number, scale:
   ctx.stroke();
 };
 
-export const drawLotus = (ctx: CanvasRenderingContext2D, p: Pad, t: number) => {
+export const drawLotus = (
+  ctx: CanvasRenderingContext2D,
+  p: Pad,
+  t: number,
+  hoverBloom = 0,
+  isDark = false
+) => {
   const R = p.r * 0.82;
   const breathe = 1 + Math.sin(t * 0.8 + p.ph) * 0.015;
+  // Mekar lembut saat kursor mendekat (+8% skala kelopak)
+  const bloomScale = breathe * (1 + hoverBloom * 0.08);
+
   const layers = [
     { n: 9, r0: R * 0.25, r1: R, w: R * 0.34, fill: "#f9dbe3", off: 0 },
     { n: 8, r0: R * 0.18, r1: R * 0.78, w: R * 0.32, fill: "#f4b3c6", off: Math.PI / 8 },
@@ -254,7 +263,7 @@ export const drawLotus = (ctx: CanvasRenderingContext2D, p: Pad, t: number) => {
   ctx.save();
   ctx.translate(p.x, p.y);
   ctx.rotate(p.rot * 0.5 + p.ph);
-  ctx.scale(breathe, breathe);
+  ctx.scale(bloomScale, bloomScale);
   ctx.lineWidth = 0.8;
   ctx.strokeStyle = "rgba(180,70,105,0.35)";
   for (const L of layers) {
@@ -272,15 +281,53 @@ export const drawLotus = (ctx: CanvasRenderingContext2D, p: Pad, t: number) => {
       ctx.restore();
     }
   }
-  ctx.fillStyle = "#f4d35e";
+
+  // Transisi warna dinamis saat kursor hover:
+  // - Di Light mode: bertransisi dari kuning emas ke Ruby Sunset Coral (#f43f5e / rgb(244, 63, 94))
+  // - Di Dark mode: bertransisi dari kuning emas ke Luminescent Cyan (#06b6d4 / rgb(6, 182, 212))
+  const targetR = isDark ? 14 : 244;
+  const targetG = isDark ? 211 : 63;
+  const targetB = isDark ? 218 : 94;
+
+  const coreR = Math.round(244 + (targetR - 244) * hoverBloom);
+  const coreG = Math.round(211 + (targetG - 211) * hoverBloom);
+  const coreB = Math.round(94 + (targetB - 94) * hoverBloom);
+
+  const dotTargetR = isDark ? 30 : 190;
+  const dotTargetG = isDark ? 160 : 24;
+  const dotTargetB = isDark ? 180 : 56;
+  const dotR = Math.round(232 + (dotTargetR - 232) * hoverBloom);
+  const dotG = Math.round(169 + (dotTargetG - 169) * hoverBloom);
+  const dotB = Math.round(58 + (dotTargetB - 58) * hoverBloom);
+
+  const auraR = Math.round(255 + (targetR - 255) * hoverBloom);
+  const auraG = Math.round(245 + (targetG - 245) * hoverBloom);
+  const auraB = Math.round(140 + (targetB - 140) * hoverBloom);
+
+  // Pendaran aura di inti sari bunga yang berdenyut lembut dan memancar kuat saat di-hover
+  const glowAlpha = 0.22 + Math.sin(t * 2.2 + p.ph) * 0.10 + hoverBloom * 0.45;
+  const glowRad = R * (0.24 + hoverBloom * 0.15);
+  const grad = ctx.createRadialGradient(0, 0, 0, 0, 0, glowRad);
+  grad.addColorStop(0, `rgba(${auraR}, ${auraG}, ${auraB}, ${glowAlpha})`);
+  grad.addColorStop(0.5, `rgba(${coreR}, ${coreG}, ${coreB}, ${glowAlpha * 0.55})`);
+  grad.addColorStop(1, `rgba(${coreR}, ${coreG}, ${coreB}, 0)`);
+  ctx.fillStyle = grad;
   ctx.beginPath();
-  ctx.arc(0, 0, R * 0.14, 0, TAU);
+  ctx.arc(0, 0, glowRad, 0, TAU);
   ctx.fill();
-  ctx.fillStyle = "#e8a93a";
+
+  // Inti sari bunga dengan warna dinamis
+  ctx.fillStyle = `rgb(${coreR}, ${coreG}, ${coreB})`;
+  ctx.beginPath();
+  ctx.arc(0, 0, R * (0.14 + hoverBloom * 0.02), 0, TAU);
+  ctx.fill();
+
+  // Butir sari melingkar
+  ctx.fillStyle = `rgb(${dotR}, ${dotG}, ${dotB})`;
   for (let i = 0; i < 10; i++) {
     const a = (i * TAU) / 10;
     ctx.beginPath();
-    ctx.arc(Math.cos(a) * R * 0.21, Math.sin(a) * R * 0.21, Math.max(1, R * 0.03), 0, TAU);
+    ctx.arc(Math.cos(a) * R * 0.21, Math.sin(a) * R * 0.21, Math.max(1, R * (0.03 + hoverBloom * 0.006)), 0, TAU);
     ctx.fill();
   }
   ctx.restore();

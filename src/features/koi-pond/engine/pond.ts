@@ -14,6 +14,9 @@ export class KoiPond {
   private t = 0;
   private active = true;
   private nextDrop = 2;
+  private lotusRippleTimer = 3.5;
+  private lotusHoverBloom = 0;
+  private lastHoverRipple = 0;
   private speed: number;
   private reduced: boolean;
   private opts: KoiOptions;
@@ -278,6 +281,35 @@ export class KoiPond {
       }
     }
 
+    // Riak air halus periodik dari teratai besar (isyarat visual alami)
+    if (!this.reduced && !this.themeTransition) {
+      this.lotusRippleTimer -= dt;
+      if (this.lotusRippleTimer <= 0) {
+        const largest = this.getLargestPad();
+        if (largest) {
+          addRipple(this.ripples, largest.x, largest.y, largest.r * 1.5, 0.28, 2.6, this.scale);
+        }
+        this.lotusRippleTimer = rand(4.5, 6.0);
+      }
+    }
+
+    // Interaksi kedekatan kursor (proximity bloom & micro-ripple saat disentuh)
+    const largest = this.getLargestPad();
+    let targetBloom = 0;
+    if (largest && this.pointer.inside && !this.themeTransition) {
+      const dist = Math.hypot(this.pointer.x - largest.x, this.pointer.y - largest.y);
+      if (dist <= largest.r) {
+        targetBloom = 1.0;
+        if (this.t - this.lastHoverRipple > 1.8) {
+          addRipple(this.ripples, largest.x, largest.y, largest.r * 0.9, 0.22, 1.8, this.scale);
+          this.lastHoverRipple = this.t;
+        }
+      } else if (dist <= largest.r * 2.2) {
+        targetBloom = Math.pow(1 - (dist - largest.r) / (largest.r * 1.2), 1.4);
+      }
+    }
+    this.lotusHoverBloom += (targetBloom - this.lotusHoverBloom) * Math.min(1, dt * 5.5);
+
     for (const f of this.fish) {
       updateFish({
         f,
@@ -389,6 +421,7 @@ export class KoiPond {
     for (const f of this.fish) drawFish(c, f, this.scale, this.speed);
 
     // Render tiap teratai beserta bunganya sebagai satu kesatuan utuh
+    const largest = this.getLargestPad();
     for (const p of this.pads) {
       const inNewTheme = this.themeTransition
         ? Math.hypot(p.x - this.themeTransition.x, p.y - this.themeTransition.y) <= this.themeTransition.r
@@ -400,7 +433,10 @@ export class KoiPond {
         : this.isDark;
 
       drawPad(c, p, this.t, this.scale, padDark);
-      if (p.flower) drawLotus(c, p, this.t);
+      if (p.flower) {
+        const isKing = p === largest;
+        drawLotus(c, p, this.t, isKing ? this.lotusHoverBloom : 0, padDark);
+      }
     }
 
     drawPellets(c, this.pellets, this.scale);
