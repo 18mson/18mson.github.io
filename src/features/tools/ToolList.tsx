@@ -1,4 +1,4 @@
-import { tools, toolUsage, type ToolTier } from "@/content/tools";
+import { tools, type ToolTier } from "@/content/tools";
 
 const TIER_COLUMNS: { tier: ToolTier; title: string; subtitle: string }[] = [
   {
@@ -32,20 +32,14 @@ export default function ToolList() {
               </div>
 
               <ul className="space-y-2 border-t border-ink/10 pt-4" aria-label={col.title}>
-                {tierTools.map((tool) => {
-                  const used = toolUsage(tool);
-                  return (
-                    <li
-                      key={tool.id}
-                      className="flex items-baseline justify-between gap-3 text-sm text-ink/80 transition-colors hover:text-ink"
-                    >
-                      <span className="shrink-0">{tool.name}</span>
-                      {used.length > 0 && (
-                        <span className="truncate text-right text-[11px] text-ink/40">{used.join(", ")}</span>
-                      )}
-                    </li>
-                  );
-                })}
+                {tierTools.map((tool) => (
+                  <li
+                    key={tool.id}
+                    className="text-sm text-ink/80 transition-colors hover:text-ink"
+                  >
+                    {tool.name}
+                  </li>
+                ))}
               </ul>
             </div>
           );
