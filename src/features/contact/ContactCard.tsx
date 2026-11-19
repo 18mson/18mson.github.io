@@ -166,7 +166,7 @@ export default function ContactCard() {
       <div className="flex items-center gap-2.5 text-xs md:text-sm text-ink/75 font-medium tracking-wide">
         <span className="size-2 rounded-full bg-koi shrink-0" aria-hidden="true" />
         <span>
-          Jakarta{timeStr ? `, local time ${timeStr} WIB` : ""} · {contactInfo.availability}
+          Jakarta, Indonesia · {contactInfo.availability}
         </span>
       </div>
 
@@ -266,7 +266,7 @@ export default function ContactCard() {
 
           <div className="relative z-10 py-7 px-2 md:py-8 md:px-4">
             <a
-              href="https://linkedin.com/in/muhamad-son-ani"
+              href="https://www.linkedin.com/in/muhamad-son-ani-549230153/"
               target="_blank"
               rel="noopener noreferrer"
               className="group flex w-full items-center justify-between text-left focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-koi"
@@ -281,7 +281,7 @@ export default function ContactCard() {
               </div>
 
               <div className="flex items-center gap-2 text-xs font-medium text-ink/60 transition-transform duration-300 group-hover:translate-x-1 group-hover:text-ink md:text-sm">
-                <span className="hidden sm:inline">linkedin.com/in/muhamad-son-ani</span>
+                <span className="hidden sm:inline">Muhamad son'ani</span>
                 <span className="text-lg md:text-xl" aria-hidden="true">
                   ↗
                 </span>
