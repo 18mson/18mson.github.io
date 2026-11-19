@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { tools } from "@/content/tools";
+import { tools, toolNote } from "@/content/tools";
 import { toolIcons } from "@/content/tool-icons";
 import { gsap } from "@/lib/gsap";
 import { ToolsArena } from "./engine";
@@ -45,6 +45,12 @@ export default function ToolsPlayground() {
   const arenaRef = useRef<ToolsArena | null>(null);
 
   const [isFinePointer, setIsFinePointer] = useState(true);
+  const [reducedMotion, setReducedMotion] = useState(false);
+  const [paused, setPaused] = useState(false);
+  const [discovered, setDiscovered] = useState(0);
+
+  const total = tools.length;
+  const complete = discovered >= total;
 
   // Data sentuh untuk membedakan tap dengan scroll
   const touchStartRef = useRef<{ x: number; y: number; time: number } | null>(null);
@@ -59,6 +65,7 @@ export default function ToolsPlayground() {
         path: icon?.path,
         hex: icon?.hex,
         label: getToolAbbreviation(t.id, t.name),
+        note: toolNote(t),
       };
     });
   }, []);
@@ -80,12 +87,13 @@ export default function ToolsPlayground() {
     const initialTheme = readThemeFromDOM();
     const arena = new ToolsArena(canvas, specs, initialTheme);
     arenaRef.current = arena;
+    arena.onDiscover = (count) => setDiscovered(count);
 
-    if (motionMq.matches) {
-      arena.setReducedMotion(true);
-    }
+    setReducedMotion(motionMq.matches);
+    arena.setReducedMotion(motionMq.matches);
 
     const onMotionChange = (e: MediaQueryListEvent) => {
+      setReducedMotion(e.matches);
       arena.setReducedMotion(e.matches);
       arena.draw();
     };
@@ -119,7 +127,7 @@ export default function ToolsPlayground() {
       (entries) => {
         isVisible = entries[0]?.isIntersecting ?? true;
       },
-      { threshold: 0.05 }
+      { threshold: 0.05 },
     );
     io.observe(container);
 
@@ -145,6 +153,16 @@ export default function ToolsPlayground() {
       arenaRef.current = null;
     };
   }, [specs]);
+
+  const togglePause = () => {
+    const next = !paused;
+    setPaused(next);
+    arenaRef.current?.setPaused(next);
+  };
+
+  const handleReset = () => {
+    arenaRef.current?.resetDiscovered();
+  };
 
   const handlePointerMove = (e: React.PointerEvent<HTMLCanvasElement>) => {
     if (!arenaRef.current) return;
@@ -183,9 +201,7 @@ export default function ToolsPlayground() {
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
 
-    const dx = x - start.x;
-    const dy = y - start.y;
-    const dist = Math.hypot(dx, dy);
+    const dist = Math.hypot(x - start.x, y - start.y);
     const duration = performance.now() - start.time;
 
     // Hanya tembak jika pergeseran < 8px dan durasi < 300ms (bukan gestur scroll)
@@ -197,7 +213,7 @@ export default function ToolsPlayground() {
   return (
     <div
       ref={containerRef}
-      className={`relative w-full h-[clamp(480px,82svh,780px)] overflow-hidden select-none ${
+      className={`relative h-[clamp(480px,82svh,780px)] w-full overflow-hidden select-none ${
         isFinePointer ? "cursor-none" : ""
       }`}
     >
@@ -211,12 +227,51 @@ export default function ToolsPlayground() {
         className="size-full touch-pan-y"
       />
 
-      {/* Petunjuk interaksi halus */}
-      <div className="pointer-events-none absolute inset-x-0 bottom-4 z-10 mx-auto max-w-5xl px-6 hidden md:block">
-        <span className="text-[11px] font-medium text-ink/40">
-          Click a balloon to shoot &amp; shatter
-        </span>
-      </div>
+      {!reducedMotion && (
+        <>
+          {/* Penghitung koleksi dan petunjuk */}
+          <div className="pointer-events-none absolute inset-x-0 bottom-4 z-10 mx-auto flex max-w-5xl items-center justify-between gap-4 px-6">
+            <p className="pointer-events-none text-xs font-medium text-ink/55">
+              {complete ? (
+                <span className="text-koi">All {total} tools discovered.</span>
+              ) : (
+                <>
+                  <span className="tabular-nums text-ink/80">
+                    {discovered} / {total}
+                  </span>{" "}
+                  discovered
+                  <span className="hidden md:inline"> · click a balloon to pop it</span>
+                  <span className="md:hidden"> · tap a balloon</span>
+                </>
+              )}
+            </p>
+
+            <div className="pointer-events-auto flex items-center gap-2">
+              {discovered > 0 && (
+                <button
+                  type="button"
+                  onClick={handleReset}
+                  className="cursor-pointer rounded-full border border-ink/15 px-3 py-1 text-xs font-medium text-ink/70 transition-colors hover:border-ink/40 hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-koi"
+                >
+                  Reset
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={togglePause}
+                aria-pressed={paused}
+                className="cursor-pointer rounded-full border border-ink/15 px-3 py-1 text-xs font-medium text-ink/70 transition-colors hover:border-ink/40 hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-koi"
+              >
+                {paused ? "Play" : "Pause"}
+              </button>
+            </div>
+          </div>
+
+          <span className="sr-only" role="status" aria-live="polite">
+            {discovered} of {total} tools discovered
+          </span>
+        </>
+      )}
     </div>
   );
 }

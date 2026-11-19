@@ -85,4 +85,8 @@ export interface Ripple {
 
 export interface KoiOptions {
   reducedMotion?: boolean;
+  /** Jumlah ikan per lebar kolam. Bila kosong, memakai bawaan (5 / 8 / 10). */
+  fishCount?: { narrow: number; mid: number; wide: number };
+  /** Jumlah daun dan bunga teratai. Bila kosong, memakai bawaan menurut lebar. */
+  pads?: { total: number; flowers: number };
 }

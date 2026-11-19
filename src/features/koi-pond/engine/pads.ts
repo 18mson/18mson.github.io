@@ -3,11 +3,17 @@ import { rand } from "./math";
 import type { Fish, Pad } from "./types";
 
 /** Letakkan daun di pinggir kolam, menjauhi pita tengah tempat nama berada. */
-export const layoutPads = (w: number, h: number, scale: number, existingPads: Pad[]): Pad[] => {
-  const target = w < 640 ? 3 : w < 1024 ? 5 : 7;
+export const layoutPads = (
+  w: number,
+  h: number,
+  scale: number,
+  existingPads: Pad[],
+  override?: { total: number; flowers: number },
+): Pad[] => {
+  const target = override?.total ?? (w < 640 ? 3 : w < 1024 ? 5 : 7);
   let pads = existingPads;
   if (pads.length !== target) {
-    const flowers = w < 640 ? 1 : 2;
+    const flowers = override?.flowers ?? (w < 640 ? 1 : 2);
     const newPads: Pad[] = [];
     let guard = 0;
     while (newPads.length < target && guard++ < 300) {

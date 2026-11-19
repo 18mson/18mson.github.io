@@ -1,3 +1,5 @@
+import { projects } from "./projects";
+
 export type ToolTier = "current" | "learned" | "exploring";
 
 export interface Tool {
@@ -39,3 +41,21 @@ export const tools: Tool[] = [
   { id: "java", name: "Java", tier: "exploring" },
   { id: "android-studio", name: "Android Studio", tier: "exploring" },
 ];
+
+const TIER_NOTE: Record<ToolTier, string> = {
+  current: "In my daily stack",
+  learned: "Used before, comfortable with it",
+  exploring: "Exploring or rarely used",
+};
+
+/** Proyek di Selected Works yang memakai tool ini (cocok berdasarkan nama tag). */
+export function toolUsage(tool: Tool): string[] {
+  const name = tool.name.toLowerCase();
+  return projects.filter((p) => p.tags.some((t) => t.toLowerCase() === name)).map((p) => p.title);
+}
+
+/** Satu kalimat untuk catatan saat balon ditembak. */
+export function toolNote(tool: Tool): string {
+  const used = toolUsage(tool);
+  return used.length > 0 ? `Used in ${used.slice(0, 2).join(", ")}` : TIER_NOTE[tool.tier];
+}

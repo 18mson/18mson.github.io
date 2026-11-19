@@ -7,6 +7,8 @@ export interface ToolSpec {
   path?: string;
   hex?: string;
   label: string;
+  /** Satu kalimat yang ditampilkan saat balon ditembak. */
+  note?: string;
 }
 
 export type TileState = "entering" | "alive" | "exiting" | "cracking" | "dead";

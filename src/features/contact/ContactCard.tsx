@@ -4,84 +4,46 @@ import { useEffect, useRef, useState } from "react";
 import { contactInfo } from "@/content/contact";
 import { gsap } from "@/lib/gsap";
 
+/**
+ * Semua teks memakai text-white + mix-blend-difference (warna terbalik terhadap air dan koi di belakangnya).
+ * Syarat: elemen induknya tidak boleh membuat stacking context (tanpa transform, opacity, atau isolation),
+ * dan transform hover dipasang pada elemen teks itu sendiri.
+ */
+const BLEND = "text-white mix-blend-difference";
+
 export default function ContactCard() {
   const [timeStr, setTimeStr] = useState("");
   const [isStamped, setIsStamped] = useState(false);
 
+  const emailRef = useRef<HTMLSpanElement>(null);
   const stampRef = useRef<HTMLDivElement>(null);
   const rippleRef = useRef<HTMLSpanElement>(null);
-  const fillRefs = useRef<(HTMLDivElement | null)[]>([]);
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Live Jakarta local time (Asia/Jakarta, UTC+7)
+  // Jam lokal Jakarta (Asia/Jakarta, UTC+7), diperbarui tiap detik tetapi hanya menampilkan menit
   useEffect(() => {
     const updateTime = () => {
-      const now = new Date();
-      const formatted = new Intl.DateTimeFormat("en-US", {
+      const formatted = new Intl.DateTimeFormat("en-GB", {
         timeZone: "Asia/Jakarta",
         hour: "2-digit",
         minute: "2-digit",
-        hour12: false,
-      }).format(now);
+        hourCycle: "h23",
+      }).format(new Date());
       setTimeStr(formatted);
     };
-
     updateTime();
     const timer = setInterval(updateTime, 1000);
     return () => clearInterval(timer);
   }, []);
 
-  // Animasi ripple air saat hover pada baris daftar
-  const handlePointerEnter = (e: React.PointerEvent<HTMLElement>, idx: number) => {
-    const fill = fillRefs.current[idx];
-    if (!fill) return;
+  useEffect(
+    () => () => {
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    },
+    [],
+  );
 
-    const rect = e.currentTarget.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-    const radius = Math.ceil(
-      Math.hypot(Math.max(x, rect.width - x), Math.max(y, rect.height - y))
-    );
-
-    const isReduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    if (isReduced) {
-      gsap.set(fill, { clipPath: `circle(${radius}px at ${x}px ${y}px)` });
-    } else {
-      gsap.fromTo(
-        fill,
-        { clipPath: `circle(0px at ${x}px ${y}px)` },
-        {
-          clipPath: `circle(${radius}px at ${x}px ${y}px)`,
-          duration: 0.5,
-          ease: "power2.out",
-          overwrite: true,
-        }
-      );
-    }
-  };
-
-  const handlePointerLeave = (e: React.PointerEvent<HTMLElement>, idx: number) => {
-    const fill = fillRefs.current[idx];
-    if (!fill) return;
-
-    const rect = e.currentTarget.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-
-    const isReduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    if (isReduced) {
-      gsap.set(fill, { clipPath: "circle(0px at 0 0)" });
-    } else {
-      gsap.to(fill, {
-        clipPath: `circle(0px at ${x}px ${y}px)`,
-        duration: 0.35,
-        ease: "power2.in",
-        overwrite: true,
-      });
-    }
-  };
-
-  // Klik email untuk menyalin dan menghantamkan stempel Hanko
+  // Klik email: salin, stempel hanko menghantam, dan pakan dilempar ke kolam di bawahnya
   const handleCopyEmail = async () => {
     try {
       await navigator.clipboard.writeText(contactInfo.email);
@@ -91,247 +53,165 @@ export default function ContactCard() {
     }
 
     setIsStamped(true);
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
 
-    if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current);
+    // Lempar pakan ke kolam tepat di tengah alamat email
+    const emailEl = emailRef.current;
+    if (emailEl) {
+      const r = emailEl.getBoundingClientRect();
+      window.dispatchEvent(
+        new CustomEvent("koi:feed-burst", { detail: { x: r.left + r.width / 2, y: r.top + r.height / 2 } }),
+      );
     }
 
     const stampEl = stampRef.current;
     const rippleEl = rippleRef.current;
+    if (!stampEl) return;
 
-    if (stampEl) {
-      const isReduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    gsap.killTweensOf(stampEl);
+    const isReduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-      if (isReduced) {
-        gsap.set(stampEl, { opacity: 1, scale: 1, y: 0, rotate: -4 });
-      } else {
-        // Animasi hantaman stempel: turun cepat, memantul mikro, jejak tinta menyebar
-        const tl = gsap.timeline();
-        tl.fromTo(
+    if (isReduced) {
+      gsap.set(stampEl, { opacity: 1, scale: 1, y: 0, rotate: -4 });
+    } else {
+      // Turun cepat, memantul mikro, lalu ring tinta menyebar
+      gsap
+        .timeline()
+        .fromTo(
           stampEl,
           { scale: 2.2, y: -38, opacity: 0, rotate: -16 },
-          {
-            scale: 1,
-            y: 0,
-            opacity: 1,
-            rotate: -4,
-            duration: 0.18,
-            ease: "power3.in",
-          }
+          { scale: 1, y: 0, opacity: 1, rotate: -4, duration: 0.18, ease: "power3.in" },
         )
-          .to(stampEl, {
-            y: -5,
-            scale: 1.04,
-            rotate: -2,
-            duration: 0.08,
-            ease: "power1.out",
-          })
-          .to(stampEl, {
-            y: 0,
-            scale: 1,
-            rotate: -4,
-            duration: 0.14,
-            ease: "bounce.out",
-          });
+        .to(stampEl, { y: -5, scale: 1.04, rotate: -2, duration: 0.08, ease: "power1.out" })
+        .to(stampEl, { y: 0, scale: 1, rotate: -4, duration: 0.14, ease: "bounce.out" });
 
-        // Ring ripple tinta merah kecil di sekeliling stempel
-        if (rippleEl) {
-          gsap.fromTo(
-            rippleEl,
-            { scale: 0.3, opacity: 0.9 },
-            {
-              scale: 2.2,
-              opacity: 0,
-              duration: 0.45,
-              ease: "power2.out",
-            }
-          );
-        }
+      if (rippleEl) {
+        gsap.fromTo(
+          rippleEl,
+          { scale: 0.3, opacity: 0.9 },
+          { scale: 2.2, opacity: 0, duration: 0.45, ease: "power2.out", overwrite: true },
+        );
       }
-
-      // Stempel bertahan ~3 detik sebelum memudar perlahan
-      timeoutRef.current = setTimeout(() => {
-        gsap.to(stampEl, {
-          opacity: 0,
-          duration: 0.5,
-          onComplete: () => setIsStamped(false),
-        });
-      }, 3000);
     }
+
+    // Stempel bertahan ~3 detik sebelum memudar
+    timeoutRef.current = setTimeout(() => {
+      gsap.to(stampEl, { opacity: 0, duration: 0.5, onComplete: () => setIsStamped(false) });
+    }, 3000);
   };
 
   return (
-    <div className="relative mt-20 pt-8 pb-12 w-full">
-      {/* 1. Status bar with live Jakarta local time */}
-      <div className="flex items-center gap-2.5 text-xs md:text-sm text-ink/75 font-medium tracking-wide">
-        <span className="size-2 rounded-full bg-koi shrink-0" aria-hidden="true" />
-        <span>
-          Jakarta, Indonesia · {contactInfo.availability}
+    <div className="relative w-full pb-16">
+      {/* Status: titik koi + jam lokal live */}
+      <div className="flex items-center gap-2.5 text-xs font-medium tracking-wide md:text-sm">
+        <span className="size-2 shrink-0 rounded-full bg-koi" aria-hidden="true" />
+        <span className={BLEND}>
+          Jakarta{timeStr && ` · ${timeStr} WIB`} · {contactInfo.availability}
         </span>
       </div>
 
-      {/* 2. Headline besar dengan font Shippori Mincho */}
-      <h2 className="mt-8 font-name font-extrabold text-[clamp(2.5rem,7vw,5.5rem)] leading-[1.08] tracking-tight text-ink">
+      <h2
+        className={`mt-8 font-name text-[clamp(2.5rem,7vw,5.5rem)] leading-[1.08] font-extrabold tracking-tight ${BLEND}`}
+      >
         {contactInfo.headline}
       </h2>
-      <p className="mt-4 max-w-2xl text-base md:text-lg text-ink/75 leading-relaxed font-body">
+      <p className={`mt-4 max-w-2xl text-base leading-relaxed text-white/85 mix-blend-difference md:text-lg`}>
         {contactInfo.subtitle}
       </p>
 
-      {/* 3. Daftar interaktif bergaya Projects dengan ripple air saat di-hover */}
       <ul className="mt-14 w-full">
-        {/* Baris 1: Email (Tipografi Raksasa + Stempel Hanko) */}
-        <li
-          onPointerEnter={(e) => handlePointerEnter(e, 0)}
-          onPointerLeave={(e) => handlePointerLeave(e, 0)}
-          className="relative border-t border-ink/15"
-        >
-          {/* Lapisan ripple air */}
-          <div
-            ref={(el) => {
-              fillRefs.current[0] = el;
-            }}
-            aria-hidden="true"
-            className="pointer-events-none absolute inset-0 bg-water transition-colors duration-500"
-            style={{ clipPath: "circle(0px at 0 0)" }}
-          />
-
-          <div className="relative z-10 py-8 px-2 md:py-10 md:px-4">
+        {/* Email: tipografi raksasa, klik untuk menyalin */}
+        <li className="group relative border-t border-ink/20 transition-colors hover:bg-white/25 dark:hover:bg-white/5">
+          <div className="relative px-2 py-8 md:px-4 md:py-10">
             <button
               type="button"
               onClick={handleCopyEmail}
-              className="group flex w-full flex-col gap-4 text-left focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-koi md:flex-row md:items-center md:justify-between"
-              aria-label={`Copy email: ${contactInfo.email}`}
+              aria-label={`Copy email address ${contactInfo.email}`}
+              className="block w-full text-left focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-koi"
             >
-              <div>
-                <span className="text-xs font-semibold uppercase tracking-wider text-ink/50">
-                  Email / Direct Inquiry
-                </span>
-                {/* Alamat email tipografi raksasa */}
-                <p className="mt-2 font-name text-[clamp(1.6rem,5vw,3.5rem)] font-extrabold leading-[1.1] tracking-tight text-ink transition-colors group-hover:text-ink">
-                  {contactInfo.email}
-                </p>
-              </div>
+              <span className={`block text-xs font-semibold tracking-wider uppercase ${BLEND} opacity-100`}>
+                Email · click to copy
+              </span>
+              <span
+                ref={emailRef}
+                className={`mt-2 block font-name text-[clamp(1.6rem,5vw,3.5rem)] leading-[1.1] font-extrabold tracking-tight transition-transform duration-300 group-hover:translate-x-2 ${BLEND}`}
+              >
+                {contactInfo.email}
+              </span>
+            </button>
 
-              {/* Area Stempel Hanko (muncul saat diklik) */}
-              <div className="relative flex items-center shrink-0 self-start md:self-center">
-                {/* Ring ripple tinta stempel */}
+            <a
+              href={`mailto:${contactInfo.email}`}
+              className="mt-3 inline-block text-xs font-medium text-white/85 mix-blend-difference underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-koi"
+            >
+              or open in your mail app ↗
+            </a>
+
+            {/* Stempel hanko, di luar lapisan blend supaya tetap merah */}
+            <div className="pointer-events-none absolute top-6 right-3 md:top-1/2 md:right-6 md:-translate-y-1/2">
+              <div className="relative">
                 <span
                   ref={rippleRef}
                   aria-hidden="true"
-                  className="pointer-events-none absolute -inset-2 rounded-lg border-2 border-red-600/70 opacity-0 dark:border-red-500/70"
+                  className="absolute -inset-2 rounded-lg border-2 border-red-600/70 opacity-0 dark:border-red-500/70"
                 />
-
-                {/* Stempel Hanko Merah */}
                 <div
                   ref={stampRef}
                   style={{ opacity: isStamped ? 1 : 0 }}
-                  className="relative inline-flex items-center justify-center rounded-md border-2 border-red-600 bg-red-600/10 p-1.5 shadow-sm select-none dark:border-red-500 dark:bg-red-500/15"
+                  className="relative inline-flex items-center justify-center rounded-md border-2 border-red-600 bg-red-600/10 p-1.5 select-none dark:border-red-500 dark:bg-red-500/15"
                 >
                   <div className="flex items-center gap-1.5 border border-red-600/60 px-2.5 py-1 dark:border-red-500/60">
-                    <span className="font-name text-sm font-black leading-none text-red-600 dark:text-red-500 md:text-base">
+                    <span className="font-name text-sm leading-none font-black text-red-600 md:text-base dark:text-red-500">
                       済
                     </span>
-                    <span className="font-mono text-[10px] font-bold tracking-widest text-red-600 dark:text-red-500 uppercase md:text-xs">
+                    <span className="font-mono text-[10px] font-bold tracking-widest text-red-600 uppercase md:text-xs dark:text-red-500">
                       COPIED
                     </span>
                   </div>
                 </div>
-
-                {!isStamped && (
-                  <span className="text-xs font-medium text-ink/40 transition-colors group-hover:text-ink/70">
-                    Click to copy ↵
-                  </span>
-                )}
               </div>
-            </button>
+            </div>
           </div>
         </li>
 
-        {/* Baris 2: LinkedIn */}
-        <li
-          onPointerEnter={(e) => handlePointerEnter(e, 1)}
-          onPointerLeave={(e) => handlePointerLeave(e, 1)}
-          className="relative border-t border-ink/15"
-        >
-          {/* Lapisan ripple air */}
-          <div
-            ref={(el) => {
-              fillRefs.current[1] = el;
-            }}
-            aria-hidden="true"
-            className="pointer-events-none absolute inset-0 bg-water transition-colors duration-500"
-            style={{ clipPath: "circle(0px at 0 0)" }}
-          />
-
-          <div className="relative z-10 py-7 px-2 md:py-8 md:px-4">
+        {contactInfo.socials.map((social, i) => (
+          <li
+            key={social.label}
+            className={`group relative border-t border-ink/20 transition-colors hover:bg-white/25 dark:hover:bg-white/5 ${
+              i === contactInfo.socials.length - 1 ? "border-b" : ""
+            }`}
+          >
             <a
-              href="https://www.linkedin.com/in/muhamad-son-ani-549230153/"
+              href={social.url}
               target="_blank"
               rel="noopener noreferrer"
-              className="group flex w-full items-center justify-between text-left focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-koi"
+              className="relative flex w-full items-center justify-between gap-4 px-2 py-7 md:px-4 md:py-8 focus-visible:outline-2 focus-visible:outline-offset-[-4px] focus-visible:outline-koi"
             >
-              <div>
-                <span className="text-xs font-semibold uppercase tracking-wider text-ink/50">
-                  Network
+              <span>
+                <span className={`block text-xs font-semibold tracking-wider uppercase ${BLEND}`}>
+                  {social.kicker}
                 </span>
-                <p className="mt-1 font-name text-[clamp(1.75rem,5.5vw,3.5rem)] font-extrabold leading-[1.1] tracking-tight text-ink transition-colors">
-                  LinkedIn
-                </p>
-              </div>
+                <span
+                  className={`mt-1 block font-name text-[clamp(1.75rem,5.5vw,3.5rem)] leading-[1.1] font-extrabold tracking-tight transition-transform duration-300 group-hover:translate-x-2 ${BLEND}`}
+                >
+                  {social.label}
+                </span>
+              </span>
 
-              <div className="flex items-center gap-2 text-xs font-medium text-ink/60 transition-transform duration-300 group-hover:translate-x-1 group-hover:text-ink md:text-sm">
-                <span className="hidden sm:inline">Muhamad son'ani</span>
+              <span className={`flex items-center gap-2 text-xs font-medium md:text-sm ${BLEND}`}>
+                <span className="hidden sm:inline">{social.handle}</span>
                 <span className="text-lg md:text-xl" aria-hidden="true">
                   ↗
                 </span>
-              </div>
+              </span>
             </a>
-          </div>
-        </li>
-
-        {/* Baris 3: GitHub */}
-        <li
-          onPointerEnter={(e) => handlePointerEnter(e, 2)}
-          onPointerLeave={(e) => handlePointerLeave(e, 2)}
-          className="relative border-t border-b border-ink/15"
-        >
-          {/* Lapisan ripple air */}
-          <div
-            ref={(el) => {
-              fillRefs.current[2] = el;
-            }}
-            aria-hidden="true"
-            className="pointer-events-none absolute inset-0 bg-water transition-colors duration-500"
-            style={{ clipPath: "circle(0px at 0 0)" }}
-          />
-
-          <div className="relative z-10 py-7 px-2 md:py-8 md:px-4">
-            <a
-              href="https://github.com/18mson"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="group flex w-full items-center justify-between text-left focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-koi"
-            >
-              <div>
-                <span className="text-xs font-semibold uppercase tracking-wider text-ink/50">
-                  Code &amp; Repositories
-                </span>
-                <p className="mt-1 font-name text-[clamp(1.75rem,5.5vw,3.5rem)] font-extrabold leading-[1.1] tracking-tight text-ink transition-colors">
-                  GitHub
-                </p>
-              </div>
-
-              <div className="flex items-center gap-2 text-xs font-medium text-ink/60 transition-transform duration-300 group-hover:translate-x-1 group-hover:text-ink md:text-sm">
-                <span className="hidden sm:inline">github.com/18mson</span>
-                <span className="text-lg md:text-xl" aria-hidden="true">
-                  ↗
-                </span>
-              </div>
-            </a>
-          </div>
-        </li>
+          </li>
+        ))}
       </ul>
+
+      <span className="sr-only" role="status" aria-live="polite">
+        {isStamped ? "Email address copied to clipboard" : ""}
+      </span>
     </div>
   );
 }

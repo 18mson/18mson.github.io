@@ -16,6 +16,7 @@ export class KoiPond {
   private nextDrop = 2;
   private speed: number;
   private reduced: boolean;
+  private opts: KoiOptions;
 
   private fish: Fish[] = [];
   private pellets: Pellet[] = [];
@@ -71,6 +72,7 @@ export class KoiPond {
     const ctx = canvas.getContext("2d");
     if (!ctx) throw new Error("Canvas 2D tidak tersedia");
     this.ctx = ctx;
+    this.opts = opts;
     this.reduced = !!opts.reducedMotion;
     this.speed = this.reduced ? 0.4 : 1;
   }
@@ -86,7 +88,8 @@ export class KoiPond {
     this.canvas.height = Math.round(h * this.dpr);
     this.scale = clamp(w / 1300, 0.55, 1.1);
 
-    const target = w < 640 ? 5 : w < 1024 ? 8 : 10;
+    const fc = this.opts.fishCount;
+    const target = fc ? (w < 640 ? fc.narrow : w < 1024 ? fc.mid : fc.wide) : w < 640 ? 5 : w < 1024 ? 8 : 10;
     while (this.fish.length < target) this.fish.push(spawnFish(this.w, this.h, this.scale));
     while (this.fish.length > target) {
       let maxIdx = 0;
@@ -95,7 +98,7 @@ export class KoiPond {
       }
       this.fish.splice(maxIdx, 1);
     }
-    this.pads = layoutPads(this.w, this.h, this.scale, this.pads);
+    this.pads = layoutPads(this.w, this.h, this.scale, this.pads, this.opts.pads);
     for (const f of this.fish) {
       f.len = f.baseLen * this.scale;
       f.spacing = f.len / (N - 1);

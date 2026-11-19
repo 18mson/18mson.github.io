@@ -1,4 +1,4 @@
-import { tools, type ToolTier } from "@/content/tools";
+import { tools, toolUsage, type ToolTier } from "@/content/tools";
 
 const TIER_COLUMNS: { tier: ToolTier; title: string; subtitle: string }[] = [
   {
@@ -27,22 +27,25 @@ export default function ToolList() {
           return (
             <div key={col.tier} className="space-y-4">
               <div>
-                <h3 className="font-display text-xl font-bold tracking-tight text-ink md:text-2xl">
-                  {col.title}
-                </h3>
+                <h3 className="font-display text-xl font-bold tracking-tight text-ink md:text-2xl">{col.title}</h3>
                 <p className="mt-1 text-xs text-ink/60">{col.subtitle}</p>
               </div>
 
               <ul className="space-y-2 border-t border-ink/10 pt-4" aria-label={col.title}>
-                {tierTools.map((tool) => (
-                  <li
-                    key={tool.id}
-                    className="flex items-center justify-between text-sm text-ink/80 transition-colors hover:text-ink"
-                  >
-                    <span>{tool.name}</span>
-                    <span className="text-[11px] font-mono text-ink/40">#{tool.id}</span>
-                  </li>
-                ))}
+                {tierTools.map((tool) => {
+                  const used = toolUsage(tool);
+                  return (
+                    <li
+                      key={tool.id}
+                      className="flex items-baseline justify-between gap-3 text-sm text-ink/80 transition-colors hover:text-ink"
+                    >
+                      <span className="shrink-0">{tool.name}</span>
+                      {used.length > 0 && (
+                        <span className="truncate text-right text-[11px] text-ink/40">{used.join(", ")}</span>
+                      )}
+                    </li>
+                  );
+                })}
               </ul>
             </div>
           );

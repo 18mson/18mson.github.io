@@ -21,7 +21,8 @@ import { drawReticle } from "./reticle";
 import { ShatterSystem } from "./shatter";
 import { createTile, drawTile, getTileBaseColor, updateTile } from "./tiles";
 import type { ArenaTheme, Slot, Tile, ToolSpec, ToolTier } from "./types";
-import { drawZoneGuides, getZoneRadiusBounds, sampleZonePosition } from "./zones";
+import { addNote, drawNotes, updateNotes, type ToolNote } from "./notes";
+import { drawZoneGuides, getZoneFractions, sampleZonePosition } from "./zones";
 
 export class ToolsArena {
   private canvas: HTMLCanvasElement;
@@ -35,6 +36,8 @@ export class ToolsArena {
   private height = 0;
   private dpr = 1;
   private R = 0;
+  private rx = 0;
+  private ry = 0;
   private cx = 0;
   private cy = 0;
 
@@ -47,6 +50,12 @@ export class ToolsArena {
   private hasPointer = false;
   private isFinePointer = true;
   private hoveredTile: Tile | null = null;
+
+  private notes: ToolNote[] = [];
+  private discovered = new Set<string>();
+
+  /** Dipanggil tiap tool baru ditemukan (ditembak) atau saat reset. */
+  public onDiscover?: (count: number, total: number) => void;
 
   constructor(canvas: HTMLCanvasElement, specs: ToolSpec[], initialTheme: ArenaTheme) {
     this.canvas = canvas;
@@ -88,6 +97,8 @@ export class ToolsArena {
     this.cx = width * 0.5;
     this.cy = height * 0.5;
     this.R = (Math.min(width, height) * 0.5) * 0.95;
+    this.rx = width * 0.5 * 0.95;
+    this.ry = height * 0.5 * 0.95;
 
     const isNarrow = width < NARROW_BREAKPOINT;
     const targetSlotCount = isNarrow
@@ -140,6 +151,13 @@ export class ToolsArena {
         const colors = getTileBaseColor(tile.tier, tile.spec, this.theme);
         this.shatterSystem.spawnPop(tile.x, tile.y, tile.size, colors.base, colors.light, x, y);
         tile.state = "dead";
+
+        addNote(this.notes, tile.x, tile.y - tile.size * 0.55, tile.spec.name, tile.spec.note ?? "");
+        if (!this.discovered.has(tile.spec.id)) {
+          this.discovered.add(tile.spec.id);
+          this.onDiscover?.(this.discovered.size, this.specs.length);
+          if (this.discovered.size === this.specs.length) this.celebrate();
+        }
 
         const slot = this.slots[tile.slotIndex];
         if (slot) {
@@ -216,11 +234,14 @@ export class ToolsArena {
 
     const pos = sampleZonePosition(
       tier,
-      this.R,
       this.cx,
       this.cy,
+      this.rx,
+      this.ry,
+      this.width,
+      this.height,
       this.getActiveTiles(),
-      radius
+      radius,
     );
 
     const lifespan = this.getLifespanForTier(tier);
@@ -256,6 +277,7 @@ export class ToolsArena {
 
     // Update pecahan & ripple
     this.shatterSystem.update(dt);
+    updateNotes(this.notes, dt);
 
     // Update hover tile
     if (this.hasPointer) {
@@ -285,7 +307,7 @@ export class ToolsArena {
     }
 
     // 1. Panduan lingkaran zona & label
-    drawZoneGuides(this.ctx, this.R, this.cx, this.cy, this.theme);
+    drawZoneGuides(this.ctx, this.cx, this.cy, this.rx, this.ry, this.theme);
 
     // 2. Tile aktif
     const active = this.getActiveTiles();
@@ -295,6 +317,7 @@ export class ToolsArena {
 
     // 3. Pecahan dan ripple
     this.shatterSystem.draw(this.ctx);
+    drawNotes(this.ctx, this.notes, this.theme, this.width);
 
     // 4. Reticle jika kursor di dalam canvas (desktop)
     if (this.hasPointer && this.isFinePointer) {
@@ -303,21 +326,23 @@ export class ToolsArena {
   }
 
   private drawStaticFrame(): void {
-    drawZoneGuides(this.ctx, this.R, this.cx, this.cy, this.theme);
+    drawZoneGuides(this.ctx, this.cx, this.cy, this.rx, this.ry, this.theme);
 
     // Susun semua tool secara deterministik di masing-masing zona
-    const currentSpecs = this.specs.filter((s) => s.tier === "current");
-    const learnedSpecs = this.specs.filter((s) => s.tier === "learned");
-    const exploringSpecs = this.specs.filter((s) => s.tier === "exploring");
-
-    const placeRing = (specs: ToolSpec[], minR: number, maxR: number, size: number) => {
-      const midR = (minR + maxR) * 0.5;
+    const place = (tier: ToolTier) => {
+      const specs = this.specs.filter((s) => s.tier === tier);
       const n = specs.length;
+      if (n === 0) return;
+      const { min, max } = getZoneFractions(tier);
+      const f = (min + max) * 0.5;
+      const a = f * this.rx;
+      const b = f * this.ry;
+      // Keliling elips (aproksimasi) membatasi ukuran agar tile tidak saling menimpa
+      const circumference = 2 * Math.PI * Math.sqrt((a * a + b * b) / 2);
+      const size = Math.max(26, Math.min(this.getTileSizeForTier(tier) * 0.7, (circumference / n) * 0.92));
       for (let i = 0; i < n; i++) {
-        const angle = (Math.PI * 2 * i) / n;
-        const x = this.cx + midR * Math.cos(angle);
-        const y = this.cy + midR * Math.sin(angle);
-        const tile = createTile(specs[i], i, x, y, size, 9999);
+        const angle = (Math.PI * 2 * i) / n - Math.PI / 2;
+        const tile = createTile(specs[i], i, this.cx + a * Math.cos(angle), this.cy + b * Math.sin(angle), size, 9999);
         tile.state = "alive";
         tile.scale = 1;
         tile.alpha = 1;
@@ -325,13 +350,31 @@ export class ToolsArena {
       }
     };
 
-    const bCurrent = getZoneRadiusBounds("current", this.R);
-    const bLearned = getZoneRadiusBounds("learned", this.R);
-    const bExploring = getZoneRadiusBounds("exploring", this.R);
+    place("current");
+    place("learned");
+    place("exploring");
+  }
 
-    placeRing(currentSpecs, bCurrent.minR, bCurrent.maxR, this.getTileSizeForTier("current") * 0.7);
-    placeRing(learnedSpecs, bLearned.minR, bLearned.maxR, this.getTileSizeForTier("learned") * 0.7);
-    placeRing(exploringSpecs, bExploring.minR, bExploring.maxR, this.getTileSizeForTier("exploring") * 0.7);
+  /** Semua tool sudah ditemukan: beberapa balon besar meletus di seluruh arena. */
+  private celebrate(): void {
+    for (let i = 0; i < 4; i++) {
+      const spec = this.specs[Math.floor(Math.random() * this.specs.length)];
+      const colors = getTileBaseColor(spec.tier, spec, this.theme);
+      this.shatterSystem.spawnPop(
+        randomRange(0.15, 0.85) * this.width,
+        randomRange(0.2, 0.8) * this.height,
+        this.getTileSizeForTier("current"),
+        colors.base,
+        colors.light,
+        this.cx,
+        this.cy,
+      );
+    }
+  }
+
+  public resetDiscovered(): void {
+    this.discovered.clear();
+    this.onDiscover?.(0, this.specs.length);
   }
 
   public destroy(): void {

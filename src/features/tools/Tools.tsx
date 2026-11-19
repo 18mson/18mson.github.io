@@ -9,14 +9,9 @@ export default function Tools() {
     >
       <div className="mx-auto max-w-5xl px-6">
         <div className="max-w-2xl">
-          <span className="text-xs font-semibold uppercase tracking-widest text-koi">
-            Arsenal &amp; Stack
-          </span>
-          <h2 className="mt-3 font-display text-4xl font-bold tracking-tight md:text-6xl">
-            Toolbox
-          </h2>
-          <p className="mt-4 max-w-md text-lg text-ink/70">
-            A dynamic radar of technologies, frameworks, and tools mapped by hands-on mastery.
+          <h2 className="font-display text-4xl font-bold tracking-tight md:text-6xl">Toolbox</h2>
+          <p className="mt-4 max-w-xl text-lg text-ink/70">
+            The closer to the center, the more I use it today. Pop a balloon to see where I have used it.
           </p>
         </div>
       </div>

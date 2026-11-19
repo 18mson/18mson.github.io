@@ -1,10 +1,13 @@
+export type CraftProof = "architecture" | "motion" | "vitals";
+
 export interface CraftPillar {
   id: string;
   num: string;
   title: string;
   highlight: string;
   description: string;
-  tags: string[];
+  /** Panel bukti yang dibaca langsung dari halaman ini. */
+  proof: CraftProof;
 }
 
 export const craftPillars: CraftPillar[] = [
@@ -14,8 +17,8 @@ export const craftPillars: CraftPillar[] = [
     title: "Modular Architecture & Scale",
     highlight: "Enterprise Reliability",
     description:
-      "Designing resilient frontend architectures with clean domain boundaries, micro-frontends, shared design systems, and predictable state patterns built for long-term multi-team velocity.",
-    tags: ["Next.js (App Router)", "TypeScript Strict", "Micro-frontends", "Zustand", "Design Systems"],
+      "Designing resilient frontend architectures with clean domain boundaries, shared design systems, and predictable state patterns built for long-term multi-team velocity.",
+    proof: "architecture",
   },
   {
     id: "kinematics",
@@ -24,7 +27,7 @@ export const craftPillars: CraftPillar[] = [
     highlight: "60fps Motion Engineering",
     description:
       "Crafting immersive, physics-informed web experiences using custom Canvas 2D simulations and GSAP scroll choreographies without frame drops or layout thrashing.",
-    tags: ["HTML5 Canvas 2D", "GSAP & ScrollTrigger", "Physics & Boids", "Lenis Smooth Scroll"],
+    proof: "motion",
   },
   {
     id: "performance",
@@ -32,7 +35,7 @@ export const craftPillars: CraftPillar[] = [
     title: "Performance & Engineering Rigor",
     highlight: "Production Stability",
     description:
-      "Prioritizing sub-second Largest Contentful Paint, minimal bundle footprints, strict WCAG accessibility standards, and automated unit and integration test coverage.",
-    tags: ["Core Web Vitals", "Vitest & Jest", "WCAG 2.1 AA", "Bundle Splitting", "Tailwind CSS v4"],
+      "Prioritizing fast Largest Contentful Paint, minimal bundle footprints, accessible interfaces, and automated unit and integration test coverage.",
+    proof: "vitals",
   },
 ];
