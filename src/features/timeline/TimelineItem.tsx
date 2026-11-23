@@ -15,7 +15,7 @@ export default function TimelineItem({ item, index }: TimelineItemProps) {
       }`}
     >
       <span
-        className="tl-node absolute top-10 left-1 z-10 size-3 -translate-x-1/2 -translate-y-1/2 rounded-full md:left-1/2"
+        className="tl-node absolute top-1/2 left-1 z-10 size-3 -translate-x-1/2 -translate-y-1/2 rounded-full md:left-1/2"
         style={{
           backgroundColor: "var(--color-koi)",
           borderColor: "var(--color-koi)",

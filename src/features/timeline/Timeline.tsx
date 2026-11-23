@@ -80,11 +80,14 @@ export default function Timeline() {
         let endY = 0;
         let currentActiveIdx = -1;
 
-        const updateLineBounds = () => {
-          if (!trackEl || !fillEl || !wrap || items.length === 0) return;
+        // Ukur posisi titik pertama & terakhir lalu pasang garis dasar di antaranya.
+        // Dipanggil juga tiap update scroll, jadi garis selalu mengikuti posisi titik yang sebenarnya
+        // (mis. setelah titik digeser, font selesai dimuat, atau tinggi kartu berubah).
+        const measure = () => {
+          if (!trackEl || !fillEl || !wrap || items.length === 0) return false;
           const firstNode = items[0].querySelector<HTMLElement>(".tl-node");
           const lastNode = items[items.length - 1].querySelector<HTMLElement>(".tl-node");
-          if (!firstNode || !lastNode) return;
+          if (!firstNode || !lastNode) return false;
 
           const listRect = wrap.getBoundingClientRect();
           const firstRect = firstNode.getBoundingClientRect();
@@ -97,14 +100,18 @@ export default function Timeline() {
           trackEl.style.top = `${startY}px`;
           trackEl.style.height = `${totalLineHeight}px`;
           trackEl.style.opacity = "1";
-
           if (indicatorEl) indicatorEl.style.opacity = "1";
+          return true;
+        };
 
+        const updateLineBounds = () => {
+          if (!measure()) return;
           updateProgress();
         };
 
         const updateProgress = () => {
           if (!wrap || !fillEl || !indicatorEl || items.length === 0) return;
+          measure();
           const listRect = wrap.getBoundingClientRect();
           const vh = window.innerHeight;
           const vhCenterInWrap = vh / 2 - listRect.top;
