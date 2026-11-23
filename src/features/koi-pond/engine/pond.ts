@@ -12,7 +12,7 @@ export class KoiPond {
   private dpr = 1;
   private scale = 1;
   private t = 0;
-  private active = true;
+  active = true;
   private nextDrop = 2;
   private lotusRippleTimer = 3.5;
   private lotusHoverBloom = 0;
@@ -26,12 +26,25 @@ export class KoiPond {
   private ripples: Ripple[] = [];
   private pads: Pad[] = [];
 
-  private pointer = { x: 0, y: 0, inside: false, lastMove: -10, lastX: 0, lastY: 0, travel: 0, lastRipple: -10 };
+  private pointer = {
+    x: 0,
+    y: 0,
+    inside: false,
+    lastMove: -10,
+    lastX: 0,
+    lastY: 0,
+    travel: 0,
+    lastRipple: -10,
+    lastRippleX: 0,
+    lastRippleY: 0,
+  };
 
   private _isDark = false;
+  overrideDark: boolean | null = null;
 
-  /** Status tema (selalu sinkron dengan document.documentElement). */
+  /** Status tema (selalu sinkron dengan document.documentElement kecuali dioverride saat transisi). */
   get isDark(): boolean {
+    if (this.overrideDark !== null) return this.overrideDark;
     if (typeof document !== "undefined") {
       return document.documentElement.classList.contains("dark");
     }
@@ -138,9 +151,40 @@ export class KoiPond {
       if (this.pellets.length < MAX_PELLETS) dropPellet(this.pellets, x + rand(-14, 14), y + rand(-14, 14));
     }
 
-    if (this.t - p.lastRipple > 0.18) {
-      addRipple(this.ripples, x, y, 26, 0.35, 1.4, this.scale);
+    // Riak air halus beruntun (wake trail) mengikuti geseran kursor secara mulus
+    const dtRipple = this.t - p.lastRipple;
+    if (dtRipple > 0.35 || (p.lastRippleX === 0 && p.lastRippleY === 0)) {
+      p.lastRippleX = x;
+      p.lastRippleY = y;
       p.lastRipple = this.t;
+      addRipple(this.ripples, x, y, 22, 0.24, 1.05, this.scale);
+    } else {
+      const dx = x - p.lastRippleX;
+      const dy = y - p.lastRippleY;
+      const dist = Math.hypot(dx, dy);
+      const step = 18 * Math.max(0.7, this.scale);
+
+      if (dist >= step) {
+        // Interpolasi riak di sepanjang jalur gerakan agar jejak air mulus mengalir tanpa jeda
+        const steps = Math.min(6, Math.floor(dist / step));
+        const actualStep = dist / steps;
+        for (let i = 1; i <= steps; i++) {
+          const frac = (i * actualStep) / dist;
+          const rx = p.lastRippleX + dx * frac;
+          const ry = p.lastRippleY + dy * frac;
+          const radius = rand(20, 26);
+          const strength = rand(0.2, 0.28);
+          addRipple(this.ripples, rx, ry, radius, strength, 1.1, this.scale);
+        }
+        p.lastRippleX = x;
+        p.lastRippleY = y;
+        p.lastRipple = this.t;
+      } else if (dtRipple > 0.07 && dist >= 7 * this.scale) {
+        addRipple(this.ripples, x, y, 22, 0.22, 1.0, this.scale);
+        p.lastRippleX = x;
+        p.lastRippleY = y;
+        p.lastRipple = this.t;
+      }
     }
     this.firstFeed();
   }
@@ -150,10 +194,20 @@ export class KoiPond {
     return this.pads.reduce((max, p) => (p.r > max.r ? p : max), this.pads[0]);
   }
 
+  getPadAt(x: number, y: number): Pad | null {
+    const hits = this.pads.filter((p) => Math.hypot(x - p.x, y - p.y) <= p.r);
+    if (!hits.length) return null;
+    return hits.find((p) => p.flower) ?? hits[0];
+  }
+
   isOverLargestPad(x: number, y: number): boolean {
     const largest = this.getLargestPad();
     if (!largest) return false;
     return Math.hypot(x - largest.x, y - largest.y) <= largest.r;
+  }
+
+  isOverClickablePad(x: number, y: number): boolean {
+    return this.getPadAt(x, y) !== null;
   }
 
   triggerThemeTransition(pad?: Pad) {
@@ -207,6 +261,86 @@ export class KoiPond {
     this.onThemeToggleEnd?.(targetDark);
   }
 
+  /** Ambil snapshot posisi ikan dan teratai untuk disinkronkan ke mode ASCII. */
+  getSnapshot(): {
+    fish: Array<{ x: number; y: number; angle: number; size: number; speed: number; pal: number }>;
+    pads: Array<{ x: number; y: number; r: number; rot: number; flower: boolean; tone: number }>;
+    w: number;
+    h: number;
+  } {
+    return {
+      fish: this.fish.map((f) => ({
+        x: f.pts[0].x,
+        y: f.pts[0].y,
+        angle: f.heading,
+        size: f.baseLen,
+        speed: f.cruise,
+        pal: Math.floor(Math.random() * 5),
+      })),
+      pads: this.pads.map((p) => ({
+        x: p.x,
+        y: p.y,
+        r: p.r,
+        rot: p.rot,
+        flower: p.flower,
+        tone: p.tone,
+      })),
+      w: this.w,
+      h: this.h,
+    };
+  }
+
+  /** Terapkan snapshot posisi ikan dan teratai (misal dari mode ASCII saat kembali ke 2D). */
+  applySnapshot(snap: {
+    fish: Array<{ x: number; y: number; angle: number; size?: number; speed?: number; pal?: number }>;
+    pads: Array<{ x: number; y: number; r: number; rot: number; flower?: boolean; tone?: number }>;
+    w: number;
+    h: number;
+  }) {
+    if (!snap || !this.w || !this.h) return;
+
+    // 1. Sinkronkan posisi teratai
+    if (snap.pads && snap.pads.length) {
+      const count = Math.min(this.pads.length, snap.pads.length);
+      for (let i = 0; i < count; i++) {
+        const sp = snap.pads[i];
+        const p = this.pads[i];
+        p.x = snap.w > 0 ? (sp.x / snap.w) * this.w : sp.x;
+        p.y = snap.h > 0 ? (sp.y / snap.h) * this.h : sp.y;
+        p.fx = p.x / this.w;
+        p.fy = p.y / this.h;
+        p.rot = sp.rot;
+        p.vx = 0;
+        p.vy = 0;
+      }
+    }
+
+    // 2. Sinkronkan posisi & orientasi ikan
+    if (snap.fish && snap.fish.length) {
+      const count = Math.min(this.fish.length, snap.fish.length);
+      for (let i = 0; i < count; i++) {
+        const sf = snap.fish[i];
+        const f = this.fish[i];
+        const hx = snap.w > 0 ? (sf.x / snap.w) * this.w : sf.x;
+        const hy = snap.h > 0 ? (sf.y / snap.h) * this.h : sf.y;
+        f.heading = sf.angle;
+        f.pts[0].x = hx;
+        f.pts[0].y = hy;
+        f.draw[0].x = hx;
+        f.draw[0].y = hy;
+        for (let j = 1; j < f.pts.length; j++) {
+          const px = hx - Math.cos(f.heading) * j * f.spacing;
+          const py = hy - Math.sin(f.heading) * j * f.spacing;
+          f.pts[j].x = px;
+          f.pts[j].y = py;
+          f.draw[j].x = px;
+          f.draw[j].y = py;
+          f.ang[j] = f.heading;
+        }
+      }
+    }
+  }
+
   pointerDown(x: number, y: number, allowEasterEgg = true) {
     if (x < 0 || y < 0 || x > this.w || y > this.h) return;
     this.pointer.x = x;
@@ -214,10 +348,10 @@ export class KoiPond {
     this.pointer.inside = true;
     this.pointer.lastMove = this.t;
 
-    // Periksa apakah klik tepat pada teratai terbesar (Easter Egg hanya aktif saat kolam penuh di puncak)
-    const largest = this.getLargestPad();
-    if (allowEasterEgg && largest && !this.themeTransition && Math.hypot(x - largest.x, y - largest.y) <= largest.r) {
-      this.triggerThemeTransition(largest);
+    // Periksa apakah klik tepat pada teratai (bisa memicu transisi ganti tema)
+    const clickedPad = this.getPadAt(x, y);
+    if (allowEasterEgg && clickedPad && !this.themeTransition) {
+      this.triggerThemeTransition(clickedPad);
       this.firstFeed();
       return;
     }
@@ -295,20 +429,26 @@ export class KoiPond {
 
     // Interaksi kedekatan kursor (proximity bloom & micro-ripple saat disentuh)
     const largest = this.getLargestPad();
-    let targetBloom = 0;
-    if (largest && this.pointer.inside && !this.themeTransition) {
-      const dist = Math.hypot(this.pointer.x - largest.x, this.pointer.y - largest.y);
-      if (dist <= largest.r) {
-        targetBloom = 1.0;
-        if (this.t - this.lastHoverRipple > 1.8) {
-          addRipple(this.ripples, largest.x, largest.y, largest.r * 0.9, 0.22, 1.8, this.scale);
-          this.lastHoverRipple = this.t;
+    let targetLargestBloom = 0;
+    for (const p of this.pads) {
+      if (!p.flower && p !== largest) continue;
+      let targetBloom = 0;
+      if (this.pointer.inside && !this.themeTransition) {
+        const dist = Math.hypot(this.pointer.x - p.x, this.pointer.y - p.y);
+        if (dist <= p.r) {
+          targetBloom = 1.0;
+          if (this.t - this.lastHoverRipple > 1.8) {
+            addRipple(this.ripples, p.x, p.y, p.r * 0.9, 0.22, 1.8, this.scale);
+            this.lastHoverRipple = this.t;
+          }
+        } else if (dist <= p.r * 2.2) {
+          targetBloom = Math.pow(1 - (dist - p.r) / (p.r * 1.2), 1.4);
         }
-      } else if (dist <= largest.r * 2.2) {
-        targetBloom = Math.pow(1 - (dist - largest.r) / (largest.r * 1.2), 1.4);
       }
+      p.hoverBloom = (p.hoverBloom ?? 0) + (targetBloom - (p.hoverBloom ?? 0)) * Math.min(1, dt * 5.5);
+      if (p === largest) targetLargestBloom = p.hoverBloom;
     }
-    this.lotusHoverBloom += (targetBloom - this.lotusHoverBloom) * Math.min(1, dt * 5.5);
+    this.lotusHoverBloom = targetLargestBloom;
 
     for (const f of this.fish) {
       updateFish({
@@ -435,7 +575,8 @@ export class KoiPond {
       drawPad(c, p, this.t, this.scale, padDark);
       if (p.flower) {
         const isKing = p === largest;
-        drawLotus(c, p, this.t, isKing ? this.lotusHoverBloom : 0, padDark);
+        const bloom = p.hoverBloom ?? (isKing ? this.lotusHoverBloom : 0);
+        drawLotus(c, p, this.t, bloom, padDark);
       }
     }
 

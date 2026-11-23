@@ -32,6 +32,7 @@ export interface Pad {
   tone: number;
   flower: boolean;
   freezeTimer?: number;
+  hoverBloom?: number;
 }
 
 export interface Variety {

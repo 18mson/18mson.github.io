@@ -218,13 +218,13 @@ export default function Timeline() {
           className="pointer-events-none absolute left-7 z-20 size-4 -translate-x-1/2 -translate-y-1/2 rounded-full bg-koi ring-8 ring-koi/20 transition-opacity duration-300 md:left-1/2"
         />
 
-        <div className="h-8 md:h-12" />
-        <ol className="space-y-16 md:space-y-20 px-6">
+        <div className="h-6 md:h-8" />
+        <ol className="space-y-6 md:space-y-0 px-6">
           {timeline.map((item, i) => (
             <TimelineItem key={item.id} item={item} index={i} />
           ))}
         </ol>
-        <div className="h-16 md:h-24" />
+        <div className="h-10 md:h-14" />
       </div>
     </section>
   );
