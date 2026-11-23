@@ -6,12 +6,26 @@ interface TimelineItemProps {
 }
 
 export default function TimelineItem({ item, index }: TimelineItemProps) {
+  const isEven = index % 2 === 0;
+
   return (
-    <li className={`tl-item relative md:grid md:grid-cols-2 ${index > 0 ? "md:-mt-28 lg:-mt-32" : ""}`}>
-      <span className="tl-node absolute top-1/2 left-1 z-10 size-3 -translate-x-1/2 -translate-y-1/2 rounded-full md:left-1/2" />
+    <li
+      className={`tl-item relative md:grid md:grid-cols-2 ${
+        index > 0 ? "md:-mt-28 lg:-mt-32" : ""
+      }`}
+    >
+      <span
+        className="tl-node absolute top-10 left-1 z-10 size-3 -translate-x-1/2 -translate-y-1/2 rounded-full md:left-1/2"
+        style={{
+          backgroundColor: "var(--color-koi)",
+          borderColor: "var(--color-koi)",
+        }}
+      />
       <div
         className={`tl-card ml-12 rounded-2xl border border-ink/10 bg-(--color-card) p-6 md:ml-0 ${
-          index % 2 === 0 ? "md:col-start-1 md:mr-12 lg:mr-14" : "md:col-start-2 md:ml-12 lg:ml-14"
+          isEven
+            ? "md:col-start-1 md:mr-10 lg:mr-12"
+            : "md:col-start-2 md:ml-10 lg:ml-12"
         }`}
       >
         <p className="font-medium text-koi tabular-nums">{item.period}</p>

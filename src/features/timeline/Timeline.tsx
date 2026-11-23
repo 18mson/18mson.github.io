@@ -47,55 +47,28 @@ export default function Timeline() {
           gsap.to(section.current, { backgroundColor: color, duration: 0.9, ease: "power2.out", overwrite: true });
         };
 
-        items.forEach((item, i) => {
+        items.forEach((item) => {
           const card = item.querySelector<HTMLElement>(".tl-card");
-          const isLast = i === items.length - 1;
+          if (!card) return;
 
-          // Kartu muncul dari bawah dan tetap terlihat agar timeline dapat dibaca utuh
+          // Kartu muncul halus segera saat mulai memasuki layar dari bawah, tanpa delay
           gsap.fromTo(
             card,
-            { autoAlpha: 0, y: 50, scale: 0.96 },
+            { autoAlpha: 0, y: 24, scale: 0.98 },
             {
               autoAlpha: 1,
               y: 0,
               scale: 1,
-              duration: 0.6,
+              duration: 0.35,
               ease: "power2.out",
               scrollTrigger: {
-                trigger: item,
-                start: "top 88%",
-                toggleActions: "play none none reverse",
+                trigger: card,
+                start: "top 96%",
+                toggleActions: "play none none none",
+                once: true,
               },
             }
           );
-
-          // Penanda aktif saat bagian tengah layar (posisi titik) melewati item ini.
-          ScrollTrigger.create({
-            trigger: item,
-            start: "top center",
-            end: "bottom center",
-            onToggle: (self) => item.classList.toggle("is-active", self.isActive),
-            onEnter: () => tone(timeline[i].tone),
-            onEnterBack: () => tone(timeline[i].tone),
-            // Setelah item terakhir lewat, kembali ke warna paper supaya menyatu dengan section berikutnya.
-            onLeave: () => {
-              if (isLast) tone(PAPER);
-            },
-            onLeaveBack: () => {
-              const isDark = document.documentElement.classList.contains("dark");
-              if (isDark) {
-                if (section.current) section.current.style.backgroundColor = "";
-              } else {
-                tone(i === 0 ? PAPER : timeline[i - 1].tone);
-              }
-            },
-          });
-          ScrollTrigger.create({
-            trigger: item,
-            start: "center center",
-            onEnter: () => item.classList.add("is-passed"),
-            onLeaveBack: () => item.classList.remove("is-passed"),
-          });
         });
 
         const trackEl = track.current;
@@ -105,6 +78,7 @@ export default function Timeline() {
 
         let startY = 0;
         let endY = 0;
+        let currentActiveIdx = -1;
 
         const updateLineBounds = () => {
           if (!trackEl || !fillEl || !wrap || items.length === 0) return;
@@ -139,24 +113,71 @@ export default function Timeline() {
           const dotY = Math.min(endY, Math.max(startY, vhCenterInWrap));
           indicatorEl.style.top = `${dotY}px`;
 
-          // Filosofi waktu mundur: garis berwarna membentang dari titik aktif ke bawah (ke masa lalu), sedangkan yang di atas polos
+          // Garis oranye membentang dari titik aktif ke bawah (ke masa lalu), sedangkan yang di atas gelap
           fillEl.style.top = `${dotY}px`;
           const coloredHeight = Math.max(0, endY - dotY);
           fillEl.style.height = `${coloredHeight}px`;
           fillEl.style.opacity = coloredHeight > 0 ? "1" : "0";
+
+          // Sinkronisasi status titik-titik timeline:
+          // - Di atas titik aktif (dotY): garis gelap -> titik GELAP (is-dark)
+          // - Di bawah titik aktif (dotY): garis oranye -> titik MENYALA (is-lit)
+          // - Tepat di posisi titik aktif: is-active
+          let closestIdx = 0;
+          let minDiff = Infinity;
+
+          items.forEach((item, i) => {
+            const node = item.querySelector<HTMLElement>(".tl-node");
+            if (!node) return;
+            const nodeRect = node.getBoundingClientRect();
+            const nodeY = nodeRect.top - listRect.top + nodeRect.height / 2;
+            const diff = Math.abs(nodeY - dotY);
+            if (diff < minDiff) {
+              minDiff = diff;
+              closestIdx = i;
+            }
+
+            const isPassed = nodeY < dotY - 4;
+            if (isPassed) {
+              item.classList.add("is-dark");
+              item.classList.remove("is-lit");
+              node.style.backgroundColor = "var(--color-paper)";
+              node.style.borderColor = "color-mix(in oklab, var(--color-ink) 25%, transparent)";
+            } else {
+              item.classList.add("is-lit");
+              item.classList.remove("is-dark");
+              node.style.backgroundColor = "var(--color-koi)";
+              node.style.borderColor = "var(--color-koi)";
+            }
+          });
+
+          items.forEach((item, i) => {
+            item.classList.toggle("is-active", i === closestIdx);
+          });
+
+          if (closestIdx !== currentActiveIdx) {
+            currentActiveIdx = closestIdx;
+            tone(timeline[closestIdx].tone);
+          }
         };
 
         updateLineBounds();
 
         // Update saat font selesai loading agar kalkulasi tinggi kartu dan titik presisi
         if (typeof document !== "undefined" && document.fonts) {
-          document.fonts.ready.then(updateLineBounds);
+          document.fonts.ready.then(() => {
+            updateLineBounds();
+            ScrollTrigger.refresh();
+          });
         }
 
         // ResizeObserver agar selalu akurat saat reflow
         let ro: ResizeObserver | null = null;
         if (typeof ResizeObserver !== "undefined" && wrap) {
-          ro = new ResizeObserver(updateLineBounds);
+          ro = new ResizeObserver(() => {
+            updateLineBounds();
+            ScrollTrigger.refresh();
+          });
           ro.observe(wrap);
         }
 
@@ -168,6 +189,19 @@ export default function Timeline() {
           start: "top bottom",
           end: "bottom top",
           onUpdate: updateProgress,
+        });
+
+        // Transisi tone kembali ke warna paper saat scroll melewati akhir timeline
+        ScrollTrigger.create({
+          trigger: wrap,
+          start: "bottom center",
+          onEnter: () => {
+            const isDark = document.documentElement.classList.contains("dark");
+            if (!isDark) tone(PAPER);
+          },
+          onLeaveBack: () => {
+            if (currentActiveIdx >= 0) tone(timeline[currentActiveIdx].tone);
+          },
         });
 
         return () => {

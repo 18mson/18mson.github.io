@@ -37,6 +37,9 @@ type AsciiKoi = {
   wx: number;
   wy: number;
   retarget: number;
+  cruise: number;
+  chase: number;
+  boost: number;
 };
 type AsciiPad = {
   x: number;
@@ -188,9 +191,21 @@ export default function KoiAscii({
         for (let i = 0; i < N_SEG; i++) {
           seg.push({ x: hx - Math.cos(angle) * i * spacing, y: hy - Math.sin(angle) * i * spacing });
         }
+        const cruise = snap && snap.fish[n]?.speed ? snap.fish[n].speed : 46 + Math.random() * 32;
+        const chase = 150 + Math.random() * 60;
         const k: AsciiKoi = {
-          seg, angle, speed: 40, size, phase: Math.random() * 10,
-          pal: makePattern(), wx: 0, wy: 0, retarget: 0,
+          seg,
+          angle,
+          speed: cruise,
+          cruise,
+          chase,
+          boost: 0,
+          size,
+          phase: Math.random() * 10,
+          pal: makePattern(),
+          wx: 0,
+          wy: 0,
+          retarget: 0,
         };
         pickWander(k);
         kois.push(k);
@@ -299,12 +314,21 @@ export default function KoiAscii({
         const want = Math.atan2(ty - head.y, tx - head.x);
         let diff = want - k.angle;
         diff = Math.atan2(Math.sin(diff), Math.cos(diff));
-        const turn = (chase ? 3.2 : 1.6) * dt * motion;
+        const turn = (chase === 1 ? 3.0 : 2.4) * dt * motion;
         k.angle += Math.max(-turn, Math.min(turn, diff));
 
-        const base = 42 * (k.size / cell);
-        const target = chase === 1 ? 100 : chase === 0.6 ? 58 : chase === 0.2 ? 16 : base;
-        k.speed += (target - k.speed) * Math.min(1, dt * 2);
+        // Kecepatan berenang selaras persis dengan mode 2D
+        const base = k.cruise;
+        const target =
+          chase === 1
+            ? k.chase
+            : chase === 0.6
+            ? k.cruise + (k.chase - k.cruise) * 0.6
+            : chase === 0.2
+            ? k.cruise * 0.7
+            : base;
+        k.speed += (target * (1 + (k.boost || 0) * 0.35) - k.speed) * Math.min(1, dt * 2.2);
+        if (k.boost) k.boost = Math.max(0, k.boost - dt * 1.2);
 
         head.x += Math.cos(k.angle) * k.speed * dt * motion;
         head.y += Math.sin(k.angle) * k.speed * dt * motion;
@@ -328,6 +352,7 @@ export default function KoiAscii({
           if (Math.hypot(f.x - head.x, f.y - head.y) < k.size * 1.3) {
             food.splice(fi, 1);
             drop(f.x, f.y, f.big ? 5 : 1.5);
+            k.boost = 1; // Dorongan akselerasi saat melahap pakan (seperti di mode 2D)
             if (f.big) {
               fedCount++; setFed(fedCount);
               onFeedRef.current?.(fedCount);
@@ -714,9 +739,21 @@ export default function KoiAscii({
           for (let i = 0; i < N_SEG; i++) {
             seg.push({ x: hx - Math.cos(angle) * i * spacing, y: hy - Math.sin(angle) * i * spacing });
           }
+          const cruise = 46 + Math.random() * 32;
+          const chase = 150 + Math.random() * 60;
           const k: AsciiKoi = {
-            seg, angle, speed: 40, size, phase: Math.random() * 10,
-            pal: makePattern(), wx: 0, wy: 0, retarget: 0,
+            seg,
+            angle,
+            speed: cruise,
+            cruise,
+            chase,
+            boost: 0,
+            size,
+            phase: Math.random() * 10,
+            pal: makePattern(),
+            wx: 0,
+            wy: 0,
+            retarget: 0,
           };
           pickWander(k);
           kois.push(k);

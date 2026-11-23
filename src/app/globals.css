@@ -56,24 +56,31 @@ body {
   transition: background-color 0.4s ease, color 0.4s ease;
 }
 
-/* ---- Timeline states (toggled by ScrollTrigger) ---- */
+/* ---- Timeline states (synchronized with indicator and progress line) ---- */
 .tl-node {
-  background: var(--color-paper);
-  border: 2px solid color-mix(in oklab, var(--color-ink) 30%, transparent);
-  transition: background-color 0.4s, border-color 0.4s, scale 0.4s;
-}
-.tl-item.is-passed .tl-node {
-  background: var(--color-ink);
-  border-color: var(--color-ink);
-}
-.tl-item.is-active .tl-node {
   background: var(--color-koi);
-  border-color: var(--color-koi);
-  scale: 1.5;
+  border: 2px solid var(--color-koi);
+  transition: background-color 0.3s ease, border-color 0.3s ease, scale 0.3s ease;
+}
+/* Titik di atas indikator (sudah dilewati ke bawah): gelap/putih selaras dengan garis atas */
+.tl-item.is-dark .tl-node {
+  background: var(--color-paper) !important;
+  border-color: color-mix(in oklab, var(--color-ink) 25%, transparent) !important;
+  scale: 1;
+}
+/* Titik di bawah indikator: menyala oranye selaras dengan garis progres oranye di bawah */
+.tl-item.is-lit .tl-node {
+  background: var(--color-koi) !important;
+  border-color: var(--color-koi) !important;
+  scale: 1;
+}
+/* Titik tepat di posisi aktif */
+.tl-item.is-active .tl-node {
+  scale: 1.35;
 }
 .tl-card {
   background-color: var(--color-card);
-  transition: border-color 0.4s, background-color 0.4s;
+  transition: border-color 0.3s ease, background-color 0.3s ease;
 }
 .tl-item.is-active .tl-card {
   border-color: color-mix(in oklab, var(--color-koi) 60%, transparent);
