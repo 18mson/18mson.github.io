@@ -36,7 +36,7 @@ export default function Footer() {
             data-no-feed="true"
             role="button"
             tabIndex={0}
-            title="Mode ASCII"
+            title="ASCII mode"
             aria-label="Toggle ASCII mode"
             onPointerDown={handleQuoteClick}
             onClick={handleQuoteClick}

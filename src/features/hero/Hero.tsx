@@ -148,7 +148,7 @@ export default function Hero({ koi, children }: HeroProps) {
             role="button"
             tabIndex={0}
             aria-label="Toggle ASCII style mode"
-            title="Mode ASCII"
+            title="ASCII mode"
             onPointerDown={handleToggle}
             onClick={handleToggle}
             onKeyDown={(e) => {

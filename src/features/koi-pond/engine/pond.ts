@@ -195,9 +195,8 @@ export class KoiPond {
   }
 
   getPadAt(x: number, y: number): Pad | null {
-    const hits = this.pads.filter((p) => Math.hypot(x - p.x, y - p.y) <= p.r);
-    if (!hits.length) return null;
-    return hits.find((p) => p.flower) ?? hits[0];
+    const hits = this.pads.filter((p) => p.flower && Math.hypot(x - p.x, y - p.y) <= p.r);
+    return hits[0] ?? null;
   }
 
   isOverLargestPad(x: number, y: number): boolean {
@@ -431,7 +430,7 @@ export class KoiPond {
     const largest = this.getLargestPad();
     let targetLargestBloom = 0;
     for (const p of this.pads) {
-      if (!p.flower && p !== largest) continue;
+      if (!p.flower) continue;
       let targetBloom = 0;
       if (this.pointer.inside && !this.themeTransition) {
         const dist = Math.hypot(this.pointer.x - p.x, this.pointer.y - p.y);

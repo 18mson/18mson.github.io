@@ -109,6 +109,11 @@ export default function KoiAscii({
 
   const [fed, setFed] = useState(0);
   const [hint, setHint] = useState(true);
+  const [hoverLotus, setHoverLotus] = useState<{ active: boolean; x: number; y: number }>({
+    active: false,
+    x: 0,
+    y: 0,
+  });
 
   // Terapkan snapshot posisi saat snapshot baru tiba
   useEffect(() => {
@@ -476,19 +481,17 @@ export default function KoiAscii({
         }
       }
 
-      // Update hover bloom teratai besar
-      const largest = getLargestPad();
+      // Update hover bloom teratai bunga
       for (const pad of pads) {
-        const isKing = pad === largest;
         let targetBloom = 0;
-        if (isKing && ptr.inside) {
+        if (pad.flower && ptr.inside) {
           const dist = Math.hypot(ptr.x - pad.x, ptr.y - pad.y);
           if (dist <= pad.r) targetBloom = 1;
           else if (dist <= pad.r * 2.2) targetBloom = Math.pow(1 - (dist - pad.r) / (pad.r * 1.2), 1.4);
         }
         pad.hoverBloom += (targetBloom - pad.hoverBloom) * Math.min(1, dt * 5.5);
-        // Riak dari teratai besar
-        if (isKing && t % 5 < dt) drop(pad.x, pad.y, -0.6);
+        // Riak dari teratai bunga
+        if (pad.flower && t % 5 < dt) drop(pad.x, pad.y, -0.6);
       }
     };
 
@@ -558,8 +561,8 @@ export default function KoiAscii({
         }
       }
 
-      // Dot kursor hover pada teratai besar
-      if (isKing && bloom > 0.05) {
+      // Dot kursor hover pada teratai bunga
+      if (pad.flower && bloom > 0.05) {
         ctx.globalAlpha = bloom * 0.9;
         ctx.fillStyle = "#ffd43b";
         ctx.font = `bold ${cell + 2}px ui-monospace, monospace`;
@@ -811,6 +814,18 @@ export default function KoiAscii({
         }
       }
 
+      // Deteksi kursor hover teratai untuk tooltip & pointer (hanya teratai berbunga)
+      const hoveredPad = pads.find((pad) => pad.flower && Math.hypot(p.x - pad.x, p.y - pad.y) <= pad.r);
+      if (hoveredPad) {
+        document.body.style.cursor = "pointer";
+        setHoverLotus({ active: true, x: hoveredPad.x, y: hoveredPad.y });
+      } else {
+        if (document.body.style.cursor === "pointer") {
+          document.body.style.cursor = "";
+        }
+        setHoverLotus((prev) => (prev.active ? { active: false, x: 0, y: 0 } : prev));
+      }
+
       if (Math.hypot(p.x - ptr.cx, p.y - ptr.cy) > 36 && food.length < 60) {
         ptr.cx = p.x; ptr.cy = p.y;
         food.push({ x: p.x, y: p.y, vx: (Math.random() - 0.5) * 20, vy: (Math.random() - 0.5) * 20, life: 2.4, big: false });
@@ -823,10 +838,13 @@ export default function KoiAscii({
       const el = e.target as HTMLElement | null;
       if (el?.closest?.("a,button,input,textarea,select,[data-no-feed]")) return;
 
-      // Cek klik teratai (teratai besar atau teratai berbunga) → trigger balik ke 2D
-      const largest = getLargestPad();
-      const clickedPad = pads.find((pad) => Math.hypot(p.x - pad.x, p.y - pad.y) <= pad.r);
-      if (clickedPad && (clickedPad === largest || clickedPad.flower || pads.length <= 4)) {
+      // Cek klik teratai (hanya teratai berbunga) → trigger balik ke 2D
+      const clickedPad = pads.find((pad) => pad.flower && Math.hypot(p.x - pad.x, p.y - pad.y) <= pad.r);
+      if (clickedPad) {
+        if (document.body.style.cursor === "pointer") {
+          document.body.style.cursor = "";
+        }
+        setHoverLotus({ active: false, x: 0, y: 0 });
         onLotusClickRef.current?.(clickedPad.x, clickedPad.y);
         // Riak besar
         drop(clickedPad.x, clickedPad.y, 8);
@@ -860,6 +878,9 @@ export default function KoiAscii({
       io.disconnect();
       window.removeEventListener("pointermove", onMove);
       window.removeEventListener("pointerdown", onDown);
+      if (document.body.style.cursor === "pointer") {
+        document.body.style.cursor = "";
+      }
       applySnapshotRef.current = null;
     };
   }, [koiCount, cell, active]);
@@ -870,7 +891,18 @@ export default function KoiAscii({
       {showHud && (
         <div className="pointer-events-none absolute bottom-4 left-4 select-none font-mono text-xs opacity-60 text-[#e2eceb]">
           <div>fed {fed}</div>
-          {hint && <div>klik teratai → kembali ke 2D</div>}
+          {hint && <div>click lotus → back to 2D</div>}
+        </div>
+      )}
+      {hoverLotus.active && (
+        <div
+          className="pointer-events-none absolute z-30 -translate-x-1/2 -translate-y-full rounded-full border border-[#e2eceb]/20 bg-[#071719]/90 px-3 py-1 font-mono text-xs text-[#e2eceb] shadow-lg backdrop-blur-md transition-opacity duration-150"
+          style={{
+            left: `${hoverLotus.x}px`,
+            top: `${hoverLotus.y - 14}px`,
+          }}
+        >
+          click lotus → back to 2D
         </div>
       )}
     </div>

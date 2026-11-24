@@ -26,6 +26,8 @@ export interface RealisticPondProps {
   isDark?: boolean | null;
   /** Snapshot posisi ikan & teratai untuk disinkronkan ke kolam 2D */
   seedSnapshot?: PondSnapshot | null;
+  /** Callback saat kursor hover di atas teratai */
+  onLotusHover?: (hovering: boolean, x?: number, y?: number) => void;
 }
 
 export const RealisticPond = forwardRef<RealisticPondHandle, RealisticPondProps>(
@@ -38,6 +40,7 @@ export const RealisticPond = forwardRef<RealisticPondHandle, RealisticPondProps>
       fishCount,
       isDark,
       seedSnapshot,
+      onLotusHover,
     },
     forwardedRef,
   ) {
@@ -48,6 +51,8 @@ export const RealisticPond = forwardRef<RealisticPondHandle, RealisticPondProps>
     const hasPointerRef = useRef(false);
     const onSnapshotRef = useRef(onSnapshot);
     onSnapshotRef.current = onSnapshot;
+    const onLotusHoverRef = useRef(onLotusHover);
+    onLotusHoverRef.current = onLotusHover;
     const fishCountRef = useRef(fishCount);
     fishCountRef.current = fishCount;
 
@@ -196,12 +201,17 @@ export const RealisticPond = forwardRef<RealisticPondHandle, RealisticPondProps>
         const isClickableElement = !!target?.closest?.("a, button, input, textarea, select, [data-no-feed]");
 
         const canClick = isHero ? isAtHeroTop() : true;
-        if (canClick && !isClickableElement && pond.isOverClickablePad(x, y)) {
+        const pad = canClick && !isClickableElement ? pond.getPadAt(x, y) : null;
+        if (pad) {
           document.body.style.cursor = "pointer";
           hasPointerRef.current = true;
-        } else if (hasPointerRef.current) {
-          document.body.style.cursor = "";
-          hasPointerRef.current = false;
+          onLotusHoverRef.current?.(true, pad.x, pad.y);
+        } else {
+          if (hasPointerRef.current) {
+            document.body.style.cursor = "";
+            hasPointerRef.current = false;
+          }
+          onLotusHoverRef.current?.(false);
         }
       };
       const onDown = (e: PointerEvent) => {
@@ -222,6 +232,7 @@ export const RealisticPond = forwardRef<RealisticPondHandle, RealisticPondProps>
           document.body.style.cursor = "";
           hasPointerRef.current = false;
         }
+        onLotusHoverRef.current?.(false);
         pond.pointerLeave();
       };
 
@@ -241,6 +252,7 @@ export const RealisticPond = forwardRef<RealisticPondHandle, RealisticPondProps>
           document.body.style.cursor = "";
           hasPointerRef.current = false;
         }
+        onLotusHoverRef.current?.(false);
         gsap.ticker.remove(tick);
         ro.disconnect();
         io.disconnect();

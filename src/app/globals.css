@@ -1,22 +1,6 @@
 @import "tailwindcss";
 @import "lenis/dist/lenis.css";
 
-@font-face {
-  font-family: "CS Guthen";
-  src: url("/fonts/CsGuthen.otf") format("opentype");
-  font-weight: 100 900;
-  font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: "CS Guthen ASCII";
-  src: url("/fonts/CsGuthenAscii.otf") format("opentype");
-  font-weight: 100 900;
-  font-style: normal;
-  font-display: swap;
-}
-
 @theme {
   --font-display: "Bricolage Grotesque Variable", ui-sans-serif, system-ui, sans-serif;
   --font-name: "CS Guthen", "Shippori Mincho", "Hiragino Mincho ProN", serif;
