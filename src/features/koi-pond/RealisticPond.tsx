@@ -205,13 +205,14 @@ export const RealisticPond = forwardRef<RealisticPondHandle, RealisticPondProps>
         if (pad) {
           document.body.style.cursor = "pointer";
           hasPointerRef.current = true;
-          onLotusHoverRef.current?.(true, pad.x, pad.y);
+          const isDark = document.documentElement.classList.contains("dark");
+          canvas.title = isDark ? "Click lotus → light mode" : "Click lotus → dark mode";
         } else {
           if (hasPointerRef.current) {
             document.body.style.cursor = "";
             hasPointerRef.current = false;
+            canvas.title = "";
           }
-          onLotusHoverRef.current?.(false);
         }
       };
       const onDown = (e: PointerEvent) => {
@@ -231,8 +232,8 @@ export const RealisticPond = forwardRef<RealisticPondHandle, RealisticPondProps>
         if (hasPointerRef.current) {
           document.body.style.cursor = "";
           hasPointerRef.current = false;
+          canvas.title = "";
         }
-        onLotusHoverRef.current?.(false);
         pond.pointerLeave();
       };
 
@@ -251,8 +252,8 @@ export const RealisticPond = forwardRef<RealisticPondHandle, RealisticPondProps>
         if (hasPointerRef.current) {
           document.body.style.cursor = "";
           hasPointerRef.current = false;
+          canvas.title = "";
         }
-        onLotusHoverRef.current?.(false);
         gsap.ticker.remove(tick);
         ro.disconnect();
         io.disconnect();

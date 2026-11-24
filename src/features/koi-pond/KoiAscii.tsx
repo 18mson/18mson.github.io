@@ -328,10 +328,10 @@ export default function KoiAscii({
           chase === 1
             ? k.chase
             : chase === 0.6
-            ? k.cruise + (k.chase - k.cruise) * 0.6
-            : chase === 0.2
-            ? k.cruise * 0.7
-            : base;
+              ? k.cruise + (k.chase - k.cruise) * 0.6
+              : chase === 0.2
+                ? k.cruise * 0.7
+                : base;
         k.speed += (target * (1 + (k.boost || 0) * 0.35) - k.speed) * Math.min(1, dt * 2.2);
         if (k.boost) k.boost = Math.max(0, k.boost - dt * 1.2);
 
@@ -891,7 +891,7 @@ export default function KoiAscii({
       {showHud && (
         <div className="pointer-events-none absolute bottom-4 left-4 select-none font-mono text-xs opacity-60 text-[#e2eceb]">
           <div>fed {fed}</div>
-          {hint && <div>click lotus → back to 2D</div>}
+          {hint && <div>Dark mode 2D</div>}
         </div>
       )}
       {hoverLotus.active && (
@@ -902,7 +902,7 @@ export default function KoiAscii({
             top: `${hoverLotus.y - 14}px`,
           }}
         >
-          click lotus → back to 2D
+          Dark mode 2D
         </div>
       )}
     </div>

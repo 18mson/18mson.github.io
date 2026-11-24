@@ -33,26 +33,6 @@ export default function KoiCanvas({ onFirstFeed, variant = "hero" }: KoiCanvasPr
   const [realisticSeedSnapshot, setRealisticSeedSnapshot] = useState<PondSnapshot | null>(null);
   const [realisticTargetDark, setRealisticTargetDark] = useState<boolean | null>(null);
 
-  const [lotusHover, setLotusHover] = useState<{ active: boolean; x: number; y: number }>({
-    active: false,
-    x: 0,
-    y: 0,
-  });
-  const handleLotusHover = useCallback((active: boolean, x = 0, y = 0) => {
-    setLotusHover({ active, x, y });
-  }, []);
-
-  const [isDarkTheme, setIsDarkTheme] = useState(false);
-  useEffect(() => {
-    const updateDark = () => {
-      setIsDarkTheme(document.documentElement.classList.contains("dark"));
-    };
-    updateDark();
-    const mo = new MutationObserver(updateDark);
-    mo.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
-    return () => mo.disconnect();
-  }, []);
-
   const prevDarkRef = useRef(false);
   const isTransitioningRef = useRef(false);
   const transitionRef = useRef<{
@@ -275,7 +255,6 @@ export default function KoiCanvas({ onFirstFeed, variant = "hero" }: KoiCanvasPr
           onSnapshot={handleSnapshot}
           isDark={realisticTargetDark}
           seedSnapshot={realisticSeedSnapshot}
-          onLotusHover={handleLotusHover}
         />
       </div>
 
@@ -292,28 +271,6 @@ export default function KoiCanvas({ onFirstFeed, variant = "hero" }: KoiCanvasPr
           onSnapshot={handleAsciiSnapshot}
         />
       </div>
-
-      {/* Tooltip Hover Teratai di Mode 2D */}
-      {isHero && !isAscii && lotusHover.active && (
-        <div
-          className="pointer-events-none absolute z-20 -translate-x-1/2 -translate-y-full rounded-full border border-black/10 bg-white/85 px-3 py-1 font-mono text-xs text-neutral-800 shadow-lg backdrop-blur-md transition-opacity duration-150 dark:border-white/15 dark:bg-[#071719]/90 dark:text-[#e2eceb]"
-          style={{
-            left: `${lotusHover.x}px`,
-            top: `${lotusHover.y - 14}px`,
-          }}
-        >
-          {isDarkTheme ? "click lotus → light mode" : "click lotus → dark mode"}
-        </div>
-      )}
-
-      {/* Petunjuk HUD di pojok kiri bawah mode 2D */}
-      {isHero && !isAscii && (
-        <div className="pointer-events-none absolute bottom-4 left-4 z-20 select-none font-mono text-xs opacity-60 text-neutral-600 dark:text-[#e2eceb]">
-          {lotusHover.active
-            ? (isDarkTheme ? "click lotus → light mode" : "click lotus → dark mode")
-            : "touch water to feed"}
-        </div>
-      )}
 
       {transition && (
         <AsciiShockwave
