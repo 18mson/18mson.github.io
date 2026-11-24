@@ -17,6 +17,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     <html lang="en">
       <head>
         <link rel="preload" href="/fonts/CsGuthen.otf" as="font" type="font/otf" crossOrigin="anonymous" />
+        <link rel="preload" href="/fonts/CsGuthenAscii.otf" as="font" type="font/otf" crossOrigin="anonymous" />
       </head>
       <body>{children}</body>
     </html>

@@ -25,6 +25,11 @@ export default function Hero({ koi, children }: HeroProps) {
 
   /** Animasi fade mengikuti gelombang ripple saat berganti font 2D <-> ASCII */
   useEffect(() => {
+    // Warm up font ASCII di background agar seketika siap saat pertama kali di-toggle
+    if (typeof document !== "undefined" && "fonts" in document) {
+      document.fonts.load('bold 16rem "CS Guthen ASCII"');
+    }
+
     if (typeof document !== "undefined" && document.documentElement.classList.contains("ascii-mode")) {
       setIsAscii(true);
       setFontFamily(FONT_ASCII);

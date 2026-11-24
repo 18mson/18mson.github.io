@@ -54,8 +54,25 @@ type AsciiPad = {
   fy?: number;
 };
 
-const N_SEG = 14;
-const PROFILE = [0.72, 0.95, 1, 0.96, 0.86, 0.74, 0.62, 0.5, 0.4, 0.32, 0.26, 0.2, 0.16, 0.12];
+const N_SEG = 16;
+const PROFILE = [
+  0.68,
+  0.88,
+  1.05,
+  1.08,
+  1.02,
+  0.94,
+  0.84,
+  0.74,
+  0.63,
+  0.52,
+  0.42,
+  0.33,
+  0.25,
+  0.20,
+  0.16,
+  0.11,
+];
 const HEAD = "@Oo";
 const BODY = "0o*";
 const TAIL = "+:.";
@@ -179,7 +196,7 @@ export default function KoiAscii({
       kois.length = 0;
       const count = getTargetFishCount();
       for (let n = 0; n < count; n++) {
-        const size = cell * (0.9 + Math.random() * 0.3);
+        const size = Math.max(18, cell * 1.9) + Math.random() * 3;
         let angle: number, hx: number, hy: number;
         if (snap && snap.fish[n]) {
           const sf = snap.fish[n];
@@ -191,7 +208,7 @@ export default function KoiAscii({
           hx = 80 + Math.random() * Math.max(1, W - 160);
           hy = 80 + Math.random() * Math.max(1, H - 160);
         }
-        const spacing = size * 0.8;
+        const spacing = size * 0.48;
         const seg: Pt[] = [];
         for (let i = 0; i < N_SEG; i++) {
           seg.push({ x: hx - Math.cos(angle) * i * spacing, y: hy - Math.sin(angle) * i * spacing });
@@ -340,7 +357,7 @@ export default function KoiAscii({
         head.x = Math.min(W, Math.max(0, head.x));
         head.y = Math.min(H, Math.max(0, head.y));
 
-        const spacing = k.size * 0.8;
+        const spacing = k.size * 0.48;
         for (let i = 1; i < N_SEG; i++) {
           const p = k.seg[i - 1], s = k.seg[i];
           let dx = s.x - p.x, dy = s.y - p.y;
@@ -348,13 +365,13 @@ export default function KoiAscii({
           s.x = p.x + dx * spacing; s.y = p.y + dy * spacing;
         }
         k.phase += dt * (2.5 + k.speed * 0.06) * motion;
-        drop(head.x, head.y, -Math.min(1.6, k.speed * 0.012));
-        drop(k.seg[N_SEG - 1].x, k.seg[N_SEG - 1].y, -Math.min(0.8, k.speed * 0.006));
+        drop(head.x, head.y, -Math.min(2.0, k.speed * 0.015));
+        drop(k.seg[N_SEG - 1].x, k.seg[N_SEG - 1].y, -Math.min(1.0, k.speed * 0.008));
 
         // Makan pakan
         for (let fi = food.length - 1; fi >= 0; fi--) {
           const f = food[fi];
-          if (Math.hypot(f.x - head.x, f.y - head.y) < k.size * 1.3) {
+          if (Math.hypot(f.x - head.x, f.y - head.y) < k.size * 1.25) {
             food.splice(fi, 1);
             drop(f.x, f.y, f.big ? 5 : 1.5);
             k.boost = 1; // Dorongan akselerasi saat melahap pakan (seperti di mode 2D)
@@ -592,14 +609,14 @@ export default function KoiAscii({
           const next = k.seg[Math.min(i + 1, N_SEG - 1)];
           let tx = prev.x - next.x, ty = prev.y - next.y;
           const d = Math.hypot(tx, ty) || 1; tx /= d; ty /= d;
-          const amp = k.size * 0.45 * Math.pow(i / (N_SEG - 1), 1.1) * motion;
-          const off = Math.sin(k.phase - i * 0.55) * amp;
+          const amp = k.size * 0.38 * Math.pow(i / (N_SEG - 1), 1.1) * motion;
+          const off = Math.sin(k.phase - i * 0.48) * amp;
           pos.push({ x: k.seg[i].x - ty * off, y: k.seg[i].y + tx * off });
         }
         for (let i = N_SEG - 1; i >= 0; i--) {
           const r = PROFILE[i] * k.size;
           const f = i / (N_SEG - 1);
-          const set = f < 0.12 ? HEAD : f < 0.7 ? BODY : TAIL;
+          const set = f < 0.16 ? HEAD : f < 0.72 ? BODY : TAIL;
           const p = pos[i];
           const x0 = Math.max(0, Math.floor((p.x - r) / cw));
           const x1 = Math.min(cols - 1, Math.floor((p.x + r) / cw));
@@ -733,11 +750,11 @@ export default function KoiAscii({
       } else {
         const targetCount = getTargetFishCount();
         while (kois.length < targetCount) {
-          const size = cell * (0.9 + Math.random() * 0.3);
+          const size = Math.max(18, cell * 1.9) + Math.random() * 3;
           const angle = Math.random() * Math.PI * 2;
           const hx = 80 + Math.random() * Math.max(1, W - 160);
           const hy = 80 + Math.random() * Math.max(1, H - 160);
-          const spacing = size * 0.8;
+          const spacing = size * 0.48;
           const seg: Pt[] = [];
           for (let i = 0; i < N_SEG; i++) {
             seg.push({ x: hx - Math.cos(angle) * i * spacing, y: hy - Math.sin(angle) * i * spacing });

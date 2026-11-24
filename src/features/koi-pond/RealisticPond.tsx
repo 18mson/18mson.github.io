@@ -99,21 +99,21 @@ export const RealisticPond = forwardRef<RealisticPondHandle, RealisticPondProps>
         canvas,
         isHero
           ? {
-              reducedMotion: reduced,
-              ...(targetCount != null
-                ? {
-                    fishCount:
-                      typeof targetCount === "number"
-                        ? { narrow: targetCount, mid: targetCount, wide: targetCount }
-                        : targetCount,
-                  }
-                : {}),
-            }
+            reducedMotion: reduced,
+            ...(targetCount != null
+              ? {
+                fishCount:
+                  typeof targetCount === "number"
+                    ? { narrow: targetCount, mid: targetCount, wide: targetCount }
+                    : targetCount,
+              }
+              : {}),
+          }
           : {
-              reducedMotion: reduced,
-              fishCount: { narrow: 3, mid: 4, wide: 5 },
-              pads: { total: 4, flowers: 2 },
-            },
+            reducedMotion: reduced,
+            fishCount: { narrow: 3, mid: 4, wide: 5 },
+            pads: { total: 4, flowers: 2 },
+          },
       );
       pond.isDark = document.documentElement.classList.contains("dark");
       if (isDark !== undefined) {
@@ -206,7 +206,7 @@ export const RealisticPond = forwardRef<RealisticPondHandle, RealisticPondProps>
           document.body.style.cursor = "pointer";
           hasPointerRef.current = true;
           const isDark = document.documentElement.classList.contains("dark");
-          canvas.title = isDark ? "Click lotus → light mode" : "Click lotus → dark mode";
+          canvas.title = isDark ? "light mode" : "dark mode";
         } else {
           if (hasPointerRef.current) {
             document.body.style.cursor = "";
